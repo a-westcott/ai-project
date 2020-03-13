@@ -135,6 +135,10 @@ class Node:
         # with the same state in a Hash Table
         return hash(self.state)
 
+    # not AIMA, debugging
+    def __str__(self):
+        return '\n'.join([''.join([str(space).rjust(3) for space in row]) for row in self.state])
+
 def depth_limited_search(problem, limit=50):
     """[Figure 3.17]"""
 
