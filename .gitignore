@@ -1,6 +1,9 @@
 __pycache__
 launch.json
 
+.ipynb_checkpoints
+.pytest_cache
+
 *.aux
 *.fdb_latexmk
 *.fls
