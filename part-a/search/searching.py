@@ -52,10 +52,16 @@ class Problem:
         state to self.goal or checks for state in self.goal if it is a
         list, as specified in the constructor. Override this method if
         checking against a single self.goal is not enough."""
+        '''
         if isinstance(self.goal, list):
             return is_in(state, self.goal)
         else:
             return state == self.goal
+        '''
+
+        # modified goal test to account for the fact that
+        # we use a nested list to represent the goal
+        return state == self.goal
 
     def path_cost(self, c, state1, action, state2):
         """Return the cost of a solution path that arrives at state2 from

@@ -13,8 +13,9 @@ def main():
         data = json.load(file)
     ''' 
 
-    data = {"white": [[1,0,0]], "black": [[1,0,1]]}
-
+    data = {
+    "white": [[1,3,5],[1,4,3]],
+    "black": [[1,0,7],[1,4,1],[1,6,2],[1,7,3]]}
 
     board_class = Board(data)
 
@@ -23,7 +24,14 @@ def main():
     print(board_class)
 
     problem = ExpendibotsProblem(board, GOAL_BOARD)
-    print(iterative_deepening_search(problem))
+
+    node = (iterative_deepening_search(problem))
+
+    actions = []
+    while node.parent:
+        actions.append(node.action)
+        node = node.parent
+    print(actions[::-1])
 
 
 if __name__ == '__main__':
