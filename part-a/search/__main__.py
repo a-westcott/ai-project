@@ -13,6 +13,10 @@ def main():
         data = json.load(file)
     ''' 
 
+    from time import time
+
+    start = time()
+
     data = {
     "white": [[1,3,5],[1,4,3]],
     "black": [[1,0,7],[1,4,1],[1,6,2],[1,7,3]]}
@@ -33,6 +37,10 @@ def main():
         node = node.parent
     print(actions[::-1])
 
+
+    end = time()
+
+    print(f'in {end - start} secs')
 
 if __name__ == '__main__':
     main()
