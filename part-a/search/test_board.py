@@ -1,6 +1,6 @@
 import unittest
 
-from game import Board, BOOM
+from game import Board, BOOM, MOVE
 
 class TestCases(unittest.TestCase):
     
@@ -50,6 +50,18 @@ class TestCases(unittest.TestCase):
         self.assertEqual(self.test_board3.move(self.test_board3.board, 3, 6, 7, 4, 7), 
                          [[0]*8]*4 + [[0]*7+[-4], [0]*7+[-2], [0]*8, [0]*4+[-1,-2,-3,4]])
         
+    def test_print_action_boom(self):
+        string_action = Board().string_action
+        self.assertEqual(string_action([BOOM, (0, 0)]), "BOOM at (0, 0).")
+        self.assertEqual(string_action([BOOM, (5, 2)]), "BOOM at (5, 2).")
+
+
+    def test_print_action_move(self):
+        string_action = Board().string_action
+        self.assertEqual(string_action([MOVE, (1, 0, 0, 0, 1)]), "MOVE 1 from (0, 0) to (0, 1).")
+        self.assertEqual(string_action([MOVE, (5, 2, 3, 7, 3)]), "MOVE 5 from (2, 3) to (7, 3).")
+
+
 
         
 if __name__ == '__main__':

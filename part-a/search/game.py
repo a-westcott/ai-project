@@ -143,6 +143,17 @@ class Board:
     def __str__(self):
         return '\n'.join([''.join([str(space).rjust(3) for space in row]) for row in self.board])
 
+    def string_action(self, action):
+        statement = ''
+        if action[0] == BOOM:
+            x,y = action[1]
+            statement = f'BOOM at ({x}, {y}).'
+        else:
+            n, x, y, x_dest, y_dest = action[1]
+            statement = f'MOVE {n} from ({x}, {y}) to ({x_dest}, {y_dest}).'
+        return statement
+
+
 class ExpendibotsProblem(Problem):
     def actions(self, state):
         return Board().get_all_white_actions(state)

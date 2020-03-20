@@ -1,10 +1,9 @@
 import sys
 import json
 
-from util import print_move, print_boom, print_board
 from game import Board, ExpendibotsProblem
-from searching import iterative_deepening_search, astar_search
-from heuristics import h0, h1, h2
+from searching import astar_search
+from heuristics import h1
 
 GOAL_BOARD = [[0 for _ in range(8)] for _ in range(8)]
 
@@ -33,18 +32,18 @@ def main():
 
 
     #node = (iterative_deepening_search(problem))
-    node = astar_search(problem, h2)
+    node = astar_search(problem, h1)
 
     actions = []
     while node.parent:
         actions.append(node.action)
         node = node.parent
-    print(actions[::-1])
-
+    
+    for action in actions[::-1]:
+        print(board_class.string_action(action))
 
     end = time()
-
-    print(f'in {end - start} secs')
+    print(f'#in {end - start} secs')
 
 if __name__ == '__main__':
     main()
