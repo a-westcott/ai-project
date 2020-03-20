@@ -141,7 +141,8 @@ class Board:
         return board_copy
 
     def __str__(self):
-        return '\n'.join([''.join([str(space).rjust(3) for space in row]) for row in self.board])
+        # sorry cameron i runied it and i dont understand the magic to make it nice
+        return '#' + '\n#'.join([''.join([str(space).rjust(3) for space in row]) for row in self.board])
 
     def string_action(self, action):
         statement = ''
