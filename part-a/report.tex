@@ -5,11 +5,11 @@
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \lhead{COMP30024 Project Part A Report}
-\rhead{Cameron Chandler 993990 and Alexander Westcott 994344}
+\rhead{Alexander Westcott \& Cameron Chandler}
 
 
 
-\author{Cameron Chandler and Alexander Westcott}
+\author{Alexander Westcott 994344 \& Cameron Chandler 993990}
 \title{COMP30024 Artificial Intelligence Project Part A Report}
 \date{April 2020}
 
@@ -18,8 +18,37 @@
 \begin{document}
 \maketitle
 
-All of the answers for full marks.
+All of the answers for full marks.\newline
+
+
+The game has been formulated as a search problem considering each board configuration as a state. 
+Each legal white move in that board configuration is one of the actions that can be taken given that state. 
+The goal test simply compares the current board configuration to an empty board. Our path cost is one per action. 
+[ASK IN TUTE ABOUT A* PATH COST]\newline
+
+
+
+A* was chosen as the search algorithm because it is complete in this search space with finite nodes. 
+Empirically, A* was found to be more efficient than other algorithms like iterative deepening. 
+[ASK IN TUTE ABOUT A* TIME COMPLEXITY] 
+The chosen heuristic calculates the manhattan distance between all black pieces to all white pieces. 
+It sums up the smallest distance for each black piece.\newline
 
 % Shouldn't be more than 2 pages, but we can always stretch the margins if it comes to that
+
+
+$x_{1,i} =$ x coordinate of $i^{\text{th}}$ black piece $i \in {1,\dots,n}$
+
+$y_{1,i} =$ y coordinate of $i^{\text{th}}$ black piece $i \in {1,\dots,n}$
+
+$x_{2,j} =$ x coordinate of $j^{\text{th}}$ white piece $j \in {1,\dots,m}$
+
+$y_{2,j} =$ y coordinate of $j^{\text{th}}$ white piece $j \in {1,\dots,m}$
+
+Let $S_i$ be the set of Manhattan distances from the $i^{\text{th}}$ black piece to all white pieces.
+
+$S_i = \left\{\left| x_{2,j} - x_{1,i}\right| + \left| y_{2,j} - y_{1,i}\right| :j \in 1,\dots,m\right\}$
+
+$h(node) = \displaystyle\sum_{i=1}^n{\min\left(S_i\right)}$
 
 \end{document}
