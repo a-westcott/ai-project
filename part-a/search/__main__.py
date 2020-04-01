@@ -32,7 +32,7 @@ def main():
 
 
     #node = (iterative_deepening_search(problem))
-    node = astar_search(problem, h1)
+    node = astar_search(problem, h1, True)
 
     actions = []
     while node.parent:

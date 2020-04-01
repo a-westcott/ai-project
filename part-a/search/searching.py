@@ -277,7 +277,7 @@ def best_first_graph_search(problem, f, display=False):
         node = frontier.pop()
         if problem.goal_test(node.state):
             if display:
-                print(len(explored), "paths have been expanded and", len(frontier), "paths remain in the frontier")
+                print('#', len(explored), "paths have been expanded and", len(frontier), "paths remain in the frontier. Node is at level", node.depth)
             return node
 
         # some modifications below to be able to hash our representation of the board
