@@ -128,7 +128,7 @@ class State():
         """Return the value of this final state."""
         if self.terminal_test():
             # Draw
-            if not (self.board < 0).any() and not (self.board < 0).any():
+            if not (self.board > 0).any() and not (self.board < 0).any():
                 return 0
             if (self.board > 0).any():
                 return INF
@@ -206,7 +206,7 @@ class StandardPlayer(BasePlayer):
             for a in state.actions():
                 child = state.result(a)
                 # game state must be flipped
-                v = max(v, max_value(State(-1*child.board), best_score, beta, depth-1))
+                v = max(v, -max_value(State(-1*child.board), best_score, beta, depth-1))
                 if v >= beta:
                     return v
                 alpha = max(alpha, v)
@@ -214,17 +214,14 @@ class StandardPlayer(BasePlayer):
 
         # Body of alpha_beta_cutoff_search starts here:
         # The default test cuts off at depth d or at a terminal state
-        best_score = -INF
+        best_score = v = -INF
         beta = +INF
         best_action = None
         for a in state.actions():
             child = state.result(a)
-            print(state)
-            print()
-            print(child)
             # game state must be flipped
-            v = max_value(State(-1*child.board), best_score, beta, depth-1)
-            print(a, max_value(State(-1*child.board), best_score, beta, depth-1), child.utility())
+            v = max(v, -max_value(State(-1*child.board), best_score, beta, depth-1))
+            print(a, -max_value(State(-1*child.board), best_score, beta, depth-1))
             if v > best_score:
                 best_score = v
                 best_action = a
