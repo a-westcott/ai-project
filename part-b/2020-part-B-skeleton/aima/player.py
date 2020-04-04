@@ -6,6 +6,7 @@ INF = 9999.0
 
 import numpy as np
 from copy import deepcopy
+from random import shuffle
 
 class State():
     def __init__(self, board=None):
@@ -62,6 +63,7 @@ class State():
             for y in range(8):
                 if self.board[x][y] > 0:
                     actions += get_stack_actions(self.board, x, y)
+        shuffle(actions) ########################### REMOVE THIS FOR SPED ##########################
         return actions 
 
     def result(self, action):
@@ -133,33 +135,40 @@ class State():
             if (self.board > 0).any():
                 return INF
             return -INF
-        return self.board[self.board > 0].sum() / -self.board[self.board < 0].sum()
+
+        all_coords = [(x, y) for x in range(8) for y in range(8)]
+        white_pieces = [(x, y) for x, y in all_coords if (self.board[x][y] == 0) or (self.board[x][y] > 0)]
+
+        utility = 0
+        utility +=  1  * self.board[self.board > 0].sum() / -self.board[self.board < 0].sum()
+
+        # Distance to opponent
+
+        # Measure of closeness or spread
+
+        # Board position
+
+        # Closeness to centre
+        for x in range(8):
+            for y in range(8):
+                if self.board[x][y] > 0:
+                    pass
+
+        # Mobility
+        utility += len(self.actions())/150
+
+        return utility
 
     def terminal_test(self):
         """Return True if this is a final state for the game."""
         # not (black on board and white on board)
         return not (self.board < 0).any() or not (self.board > 0).any()
 
-    def display(self):
-        """Print or otherwise display the state."""
-        print(state)
-
     def __repr__(self):
         return '#' + '\n#'.join([''.join([str(space).rjust(3) for space in row]) for row in self.board])
 
 
-    '''
-    def play_game(self, *players):
-        """Play an n-person, move-alternating game."""
-        state = self.initial
-        while True:
-            for player in players:
-                move = player(self, state)
-                state = self.result(state, move)
-                if self.terminal_test(state):
-                    self.display(state)
-                    return self.utility(state, self.to_move(self.initial))
-    '''
+
 
     
 class BasePlayer:
@@ -194,7 +203,7 @@ class StandardPlayer(BasePlayer):
     def action(self):
         return self.format_action(self.negamax_search(self.state))
 
-    def negamax_search(self, state, depth=1, cutoff_test=None, eval_fn=None):
+    def negamax_search(self, state, depth=2):
         """Search game to determine best action; use alpha-beta pruning.
         This version cuts off search and uses an evaluation function."""
 
@@ -221,7 +230,7 @@ class StandardPlayer(BasePlayer):
             child = state.result(a)
             # game state must be flipped
             v = max(v, -max_value(State(-1*child.board), best_score, beta, depth-1))
-            print(a, -max_value(State(-1*child.board), best_score, beta, depth-1))
+            # print(a, -max_value(State(-1*child.board), best_score, beta, depth-1))
             if v > best_score:
                 best_score = v
                 best_action = a
