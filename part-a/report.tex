@@ -7,35 +7,30 @@
 \lhead{COMP30024 Project Part A Report}
 \rhead{Alexander Westcott \& Cameron Chandler}
 
-
-
 \author{Alexander Westcott 994344 \& Cameron Chandler 993990}
 \title{COMP30024 Artificial Intelligence Project Part A Report}
 \date{April 2020}
 
-
-
 \begin{document}
 \maketitle
 
-All of the answers for full marks.\newline
+Our implementation of Part A of the project uses code sourced from the
+Artificial Intelligence: A Modern Approach GitHub repository. 
 
+\section*{The Game as a Search Problem}
 
 The game has been formulated as a search problem considering each board configuration as a state. 
 Each legal white move in that board configuration is one of the actions that can be taken given that state. 
-The goal test simply compares the current board configuration to an empty board. Our path cost is one per action. 
-[ASK IN TUTE ABOUT A* PATH COST]\newline
+The goal test simply compares the current board configuration to an empty board. Our path cost is one unit per action. 
 
+\section*{The Algorithm}
 
-
-A* was chosen as the search algorithm because it is complete in this search space with finite nodes. 
+A* was chosen as the search algorithm because it is complete in this search space with finite nodes (checks were made for repeated states). 
 Empirically, A* was found to be more efficient than other algorithms like iterative deepening. 
-[ASK IN TUTE ABOUT A* TIME COMPLEXITY] 
+Our implementation of A* is not optimal as the heuristic we 
+developed is not admissible. 
 The chosen heuristic calculates the manhattan distance between all black pieces to all white pieces. 
-It sums up the smallest distance for each black piece.\newline
-
-% Shouldn't be more than 2 pages, but we can always stretch the margins if it comes to that
-
+It sums up the smallest distance for each black piece. $h(node)$ is defined below: \newline
 
 $x_{1,i} =$ x coordinate of $i^{\text{th}}$ black piece $i \in {1,\dots,n}$
 
@@ -50,5 +45,14 @@ Let $S_i$ be the set of Manhattan distances from the $i^{\text{th}}$ black piece
 $S_i = \left\{\left| x_{2,j} - x_{1,i}\right| + \left| y_{2,j} - y_{1,i}\right| :j \in 1,\dots,m\right\}$
 
 $h(node) = \displaystyle\sum_{i=1}^n{\min\left(S_i\right)}$
+
+\section*{Algorithm Complexity}
+Let $b$ be the branching factor, $h$ be our heuristic function, $h^*$ be remaining cost to an optimal solution, $\varepsilon = \left(\frac{\left|h-h^* \right|}{h^*}\right)$ be the heuristic error and $d$ be the depth of the least cost solution.
+The branching factor affects both the time and space complexity. 
+Every node is retained in memory during the search so both the time and space complexity are $O(b^{\varepsilon d})$.
+The branching factor depends on the number of white pieces -- increasing with more white pieces -- and can vary slightly depending on the board configuration. 
+e.g. how the pieces are stacked, distance to the edge of the board and black pieces in the way of movements.
+
+As our heuristic $(h)$ gets further away from the true value of the remaining cost $(h^*)$, the heuristic error $\varepsilon$ increases, thus incresing the time and space complexity\dots
 
 \end{document}
