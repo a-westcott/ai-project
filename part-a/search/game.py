@@ -1,4 +1,4 @@
-from searching import Problem
+from search.searching import Problem
 
 BOOM = 0
 MOVE = 1

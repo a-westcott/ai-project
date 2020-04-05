@@ -1,9 +1,9 @@
 import sys
 import json
 
-from game import Board, ExpendibotsProblem
-from searching import astar_search
-from heuristics import h1
+from search.game import Board, ExpendibotsProblem
+from search.searching import astar_search
+from search.heuristics import h1
 
 GOAL_BOARD = [[0 for _ in range(8)] for _ in range(8)]
 
