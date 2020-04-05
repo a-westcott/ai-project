@@ -1,6 +1,7 @@
 '''
-All code in this file is sourced from the AIMA 
-github repository, used with permission
+All code in this file is sourced from the AIMA github repository github.com/aimacode/aima-python
+and is used with permission. Some slight modifications have been made
+
 '''
 
 import sys
