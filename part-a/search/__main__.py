@@ -26,13 +26,13 @@ def main():
 
     board = board_class.board
 
-    print(board_class)
+    #print(board_class)
 
     problem = ExpendibotsProblem(board, GOAL_BOARD)
 
 
     #node = (iterative_deepening_search(problem))
-    node = astar_search(problem, h1, True)
+    node = astar_search(problem, h1, False)
 
     actions = []
     while node.parent:
@@ -43,7 +43,7 @@ def main():
         print(board_class.string_action(action))
 
     end = time()
-    print(f'#in {end - start} secs')
+    #print(f'#in {end - start} secs')
 
 if __name__ == '__main__':
     main()
