@@ -6,6 +6,7 @@
 \pagestyle{fancy}
 \lhead{COMP30024 Project Part A Report}
 \rhead{Alexander Westcott \& Cameron Chandler}
+\setlength{\headheight}{14pt}
 
 \author{Alexander Westcott 994344 \& Cameron Chandler 993990}
 \title{COMP30024 Artificial Intelligence Project Part A Report}
@@ -24,7 +25,7 @@ The game has been formulated as a search problem considering each board configur
 Each legal white move in a given board configuration is one 
 of the actions that can be taken in that state, and will lead to another state. 
 The goal test simply compares the current board configuration to an empty board. 
-The path cost is one unit per action. In this way, a search aglorithm has sufficient 
+The path cost is one unit per action. In this way, a search algorithm has sufficient 
 structure to search through game configurations until a solution is found, given a starting 
 configuration. 
 
@@ -74,7 +75,7 @@ It is worth noting that in reality the effective branching factor is much lower
 than $b$ if a good heuristic is chosen, the heuristic will allow pruning of counterproductive branches and 
 reducing the time and space complexity. 
 As the heuristic gets further away from the true value of the remaining cost, the heuristic error increases, 
-thus incresing the worst case time and space requirements.
+thus increasing the worst case time and space requirements.
 The value of $d$ depends upon the board configuration -- problems with solutions 
 that can be found in few steps require exponentially less time and space 
 than problems with solutions that can be found in at least more steps.
