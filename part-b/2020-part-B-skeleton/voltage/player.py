@@ -1,8 +1,8 @@
 SELF = 1
 OTHER = -1
-BOOM = 0
-MOVE = 1
-INF = 9999.0
+BOOM = 'BOOM'
+MOVE = 'MOVE'
+INF = 99.0
 
 import numpy as np
 from copy import deepcopy
@@ -54,7 +54,7 @@ class State():
             # append all the moves with all possible number of pieces moved
             for n in range(1, height+1):
                 for x_dest, y_dest in all_coords:
-                    actions.append([MOVE, (n, x, y, x_dest, y_dest)])
+                    actions.append([MOVE, n, (x, y), (x_dest, y_dest)])
 
             return actions
 
@@ -73,36 +73,12 @@ class State():
         '''
         
         new_board = deepcopy(self.board)
-        if action[0] == 'MOVE':
+        if action[0] == MOVE:
             move, n, orig, dest = action
             x0, y0 = orig
             x1, y1 = dest
             new_board[x0][y0] -= n
             new_board[x1][y1] += n
-
-        if action[0] == MOVE:
-            n, x0, y0, x1, y1 = action[1]
-            new_board[x0][y0] -= n
-            new_board[x1][y1] += n
-        
-        if action[0] == 'BOOM':
-            def explode_recursive(board, x, y, n_explosions=0):
-                ''' Returns board once explosion has occurred at coordinates '''
-                # radius is a list of all board positions to blow up
-                radius = [(x_, y_) for x_ in range(x-1, x+2) for y_ in range(y-1, y+2) if 0 <= x_ < 8 and 0 <= y_ < 8]
-                
-                # Try each position
-                for x,y in radius:
-                    # If there's a piece there
-                    if board[x][y]:
-                        n_explosions += abs(board[x][y])
-                        board[x][y] = 0
-                        board, n_explosions = explode_recursive(board, x, y, n_explosions)
-            
-                return board, n_explosions 
-            
-            x0, y0 = action[1]
-            explode_recursive(new_board, x0, y0)
 
         if action[0] == BOOM:
             def explode_recursive(board, x, y, n_explosions=0):
@@ -150,11 +126,6 @@ class State():
         # Board position
 
         # Closeness to centre
-        for x in range(N):
-            for y in range(N):
-                if self.board[x][y] > 0:
-                    pass
-
         # Mobility
         utility += len(self.actions())/150
 
@@ -170,6 +141,9 @@ class State():
         print(state)
 
     def __repr__(self):
+        return str(self)
+
+    def __str__(self):
         return '#' + '\n#'.join([''.join([str(space).rjust(3) for space in row]) for row in self.board])
 
 
@@ -206,9 +180,9 @@ class BasePlayer:
 
     def format_action(self, action):
         if action[0] == BOOM:
-            x,y = action[1]
-            statement = ('BOOM', (x,y))
+            move, orig = action
+            statement = (BOOM, orig)
         else:
-            n, x, y, x_dest, y_dest = action[1]
-            statement = ('MOVE', n, (x,y), (x_dest, y_dest))
+            move, n, orig, dest = action
+            statement = (MOVE, n, orig, dest)
         return statement

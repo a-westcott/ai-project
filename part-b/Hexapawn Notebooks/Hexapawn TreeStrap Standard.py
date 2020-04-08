@@ -347,12 +347,6 @@ def minimax(state, depth, isMax, θ, searched_states=None):
 len(θ), len(Φ(State()))
 
 
-# In[352]:
-
-
-θ
-
-
 # In[354]:
 
 
