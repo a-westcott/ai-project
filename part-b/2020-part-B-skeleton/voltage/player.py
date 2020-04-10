@@ -1,12 +1,21 @@
-SELF = 1
-OTHER = -1
 BOOM = 'BOOM'
 MOVE = 'MOVE'
 INF = 99.0
+MAX_TURNS = 250
+ALL = [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(0,6),(0,7),(1,0),(1,1),(1,2),(1,3),(1,4),(1,5),(1,6),(1,7),
+       (2,0),(2,1),(2,2),(2,3),(2,4),(2,5),(2,6),(2,7),(3,0),(3,1),(3,2),(3,3),(3,4),(3,5),(3,6),(3,7),
+       (4,0),(4,1),(4,2),(4,3),(4,4),(4,5),(4,6),(4,7),(5,0),(5,1),(5,2),(5,3),(5,4),(5,5),(5,6),(5,7),
+       (6,0),(6,1),(6,2),(6,3),(6,4),(6,5),(6,6),(6,7),(7,0),(7,1),(7,2),(7,3),(7,4),(7,5),(7,6),(7,7)]
+
 
 import numpy as np
-from copy import deepcopy
+from copy import deepcopy, copy
 from random import shuffle
+from collections import defaultdict as dd
+
+import hashlib
+
+HASH = hash
 
 class State():
     def __init__(self, board=None):
@@ -22,15 +31,16 @@ class State():
                 [1, 1, 0, 0, 0, 0,-1,-1]
             ])
         else:
-            self.board = deepcopy(board)
+            self.board = np.copy(board)
+        self.turn = 0
+        self.history = dd(int)
 
-    def actions(self):
+    def actions(self, boom=True):
         """Return a list of the allowable moves at this point."""   
-        def get_stack_actions(board, x, y):
+        def get_stack_actions(board, x, y, boom=False):
             ''' Gets the actions of the stack at (x, y) '''
             # all pieces can boom at their position
-            colour = OTHER if board[x][y] < 0 else SELF
-            actions = [[BOOM, (x, y)]]
+            actions = [[BOOM, (x, y)]] if boom else []
             # Moves
             height = abs(board[x][y])
 
@@ -49,7 +59,7 @@ class State():
                     all_coords.append((x, y-dy))
 
             # make sure we dont move onto an opposing colour
-            all_coords = [(x1, y1) for x1, y1 in all_coords if (board[x1][y1] == 0) or (board[x1][y1]*colour > 0)]
+            all_coords = [(x1, y1) for x1, y1 in all_coords if (board[x1][y1] == 0) or (board[x1][y1] > 0)]
 
             # append all the moves with all possible number of pieces moved
             for n in range(1, height+1):
@@ -59,11 +69,10 @@ class State():
             return actions
 
         actions = []
-        for x in range(8):
-            for y in range(8):
-                if self.board[x][y] > 0:
-                    actions += get_stack_actions(self.board, x, y)
-        shuffle(actions) ########################### REMOVE THIS FOR SPED ##########################
+        for x, y in ALL:
+            if self.board[x][y] > 0:
+                actions += get_stack_actions(self.board, x, y, boom)
+                
         return actions 
 
     def result(self, action):
@@ -98,42 +107,32 @@ class State():
             
             x0, y0 = action[1]
             explode_recursive(new_board, x0, y0)
-            
-        return State(new_board)
+        
+        r = State(new_board)
+        r.turn = self.turn
+        r.history = copy(self.history)
+        return r
 
 
     def utility(self):
         """Return the value of this final state."""
-        if self.terminal_test():
-            # Draw
-            if not (self.board > 0).any() and not (self.board < 0).any():
-                return 0
-            if (self.board > 0).any():
-                return INF
-            return -INF
-
-        all_coords = [(x, y) for x in range(8) for y in range(8)]
-        white_pieces = [(x, y) for x, y in all_coords if (board[x1][y1] == 0) or (board[x1][y1] > 0)]
-
-        utility = 0
-        utility +=  1  * self.board[self.board > 0].sum() / -self.board[self.board < 0].sum()
-
+        # Draw
+        if not (self.board > 0).any() and not (self.board < 0).any():
+            return 0
+        if (self.board > 0).any():
+            return INF
+        return -INF
         # Distance to opponent
-
         # Measure of closeness or spread
-
-
         # Board position
-
         # Closeness to centre
         # Mobility
-        utility += len(self.actions())/150
-
-        return utility
 
     def terminal_test(self):
         """Return True if this is a final state for the game."""
         # not (black on board and white on board)
+        if (self.turn >= MAX_TURNS*2) or (self.history[self] >= 4):
+            return True
         return not (self.board < 0).any() or not (self.board > 0).any()
 
     def display(self):
@@ -144,7 +143,7 @@ class State():
         return str(self)
 
     def __str__(self):
-        return '#' + '\n#'.join([''.join([str(space).rjust(3) for space in row]) for row in self.board])
+        return '\n'.join([''.join([str(space).rjust(3) for space in row]) for row in self.board])
 
 
     '''
@@ -159,7 +158,11 @@ class State():
                     self.display(state)
                     return self.utility(state, self.to_move(self.initial))
     '''
+    def __hash__(self): 
+        return HASH(self.board.tostring())
 
+    def __eq__(self, other):
+        return (self.board == other.board).all()
     
 class BasePlayer:
     def __init__(self, colour):
