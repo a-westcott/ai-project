@@ -222,7 +222,7 @@ def H(features, θ):
 MAX_CHANGE = 0.1
 def tree_strap_train(θ, depth=TRAIN_DEPTH):
     state = State()
-    random_turns = np.random.choice([0] + [2]*2 + [4]*4 + [8]*8 + 16*[16] + 32*[32])
+    random_turns = 8 #np.random.choice([0] + [2]*2 + [4]*4 + [8]*8 + 16*[16] + 32*[32])
     while (not state.terminal_test()):
         print(f'Turn number {state.turn}')
         print(state)
@@ -283,7 +283,7 @@ def minimax(state, depth, θ, searched_states=None):
     return maxEval
 
 
-N_GAMES = 5
+N_GAMES = 1
 def main():
     θ = np.array([-0.31923688,  0.25083284, -0.30244211, -0.0489124,  -0.3328332,   0.09468402,
   0.48055289,  0.47096562,  0.07606004,  0.04764147, -0.37635794, -0.09468402,
