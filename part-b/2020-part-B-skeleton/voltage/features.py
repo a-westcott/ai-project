@@ -272,7 +272,7 @@ def Φ(state, memoized_states={}):
     # Closeness to centre
 
 
-    f1s = [largest_connected_cluster, largest_almost_connected_cluster_stacks, largest_almost_connected_cluster_pieces,
+    f1s = [#largest_connected_cluster, largest_almost_connected_cluster_stacks, largest_almost_connected_cluster_pieces,
            mobility, pieces, stacks, actions, connectivity, threat, av_stack_size]
     f2s = [piece_centrality, stack_centrality]
     f3s = [column_piece_count, column_stack_count]

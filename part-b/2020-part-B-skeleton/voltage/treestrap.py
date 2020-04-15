@@ -1,11 +1,10 @@
-from player import State, ALL, MOVE
+from player import State, ALL, MOVE, INF
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import defaultdict as dd
 from features import Φ, ALL_STACKS, RINGS
 
-INF = 99.0
 TRAIN_DEPTH = 2
 
 num_features = len(Φ(State()))
@@ -21,7 +20,7 @@ def H(features, θ):
 α = 0.00001
 λ = 0.5
 MAX_CHANGE = 0.1
-def tree_strap_train(θo, θm, θe, depth=TRAIN_DEPTH, tdl=False):
+def tree_strap_train(θo, θm, θe, depth=TRAIN_DEPTH):
     OPN, MID, END = 0, 1, 2
     state = State()
     random_turns = np.random.choice([0] + [2]*2 + [4]*4 + [8]*8 + 16*[16] + 32*[32])
@@ -44,12 +43,7 @@ def tree_strap_train(θo, θm, θe, depth=TRAIN_DEPTH, tdl=False):
             state = state.result(state.actions(False)[np.random.choice([i for i in range(num_actions)])])
         else:
             searched_states = []
-            if tdl:
-                V = negamax(State(state.board), -INF, INF, depth, θ)
-                features = Φ(state)
-                searched_states = [(State(state.board), V, H(features, θ), features, depth)]
-            else:
-                V = minimax(State(state.board), depth, θ, searched_states)
+            V = minimax(State(state.board), depth, θ, searched_states)
 
             Δθ = np.zeros(num_features)
             for s, vs, hs, features, d in searched_states:
@@ -69,7 +63,6 @@ def tree_strap_train(θo, θm, θe, depth=TRAIN_DEPTH, tdl=False):
             θ += Δθ
 
             actions = []
-            actions2 = []
             for a in state.actions():
                 child = state.result(a)
                 actions.append((-negamax(State(-1*child.board), -INF, INF, depth-1, θ), a))
@@ -114,55 +107,16 @@ def negamax(state, alpha, beta, depth, θ):
         alpha = max(alpha, v)
     return v
 
-def negamax2(state, depth, θ):
-    """Search game to determine best action; use alpha-beta pruning.
-    This version cuts off search and uses an evaluation function."""
-
-    # Functions used by alpha_beta
-    def max_value(state, alpha, beta, depth):
-        if state.terminal_test():
-            return state.utility()
-        if depth == 0:
-            return H(Φ(state), θ)
-
-        v = -INF
-        for a in state.actions():
-            child = state.result(a)
-            # game state must be flipped
-            v = max(v, -max_value(State(-1*child.board), best_score, beta, depth-1))
-            if v >= beta:
-                return v
-            alpha = max(alpha, v)
-        return v
-
-    # Body of alpha_beta_cutoff_search starts here:
-    # The default test cuts off at depth d or at a terminal state
-    best_score = v = -INF
-    beta = +INF
-    best_action = None
-    for a in state.actions():
-        child = state.result(a)
-        # game state must be flipped
-        v = max(v, -max_value(State(-1*child.board), best_score, beta, depth-1))
-        if v > best_score:
-            best_score = v
-            best_action = a
-    return best_action
-
-N_GAMES = 3
+N_GAMES = 8
 def main():
     θo = np.random.uniform(-0.01, 0.01, num_features)
     θm = np.random.uniform(-0.01, 0.01, num_features)
     θe = np.random.uniform(-0.01, 0.01, num_features)
 
-    θo = np.zeros(num_features)
-    θm = np.zeros(num_features)
-    θe = np.zeros(num_features)
-
     θos, θms, θes = [np.copy(θo)], [np.copy(θm)], [np.copy(θe)]
     for _ in range(N_GAMES):
         print('Game #', _)
-        θo, θm, θe = tree_strap_train(θo, θm, θe, depth=TRAIN_DEPTH, tdl=False)
+        θo, θm, θe = tree_strap_train(θo, θm, θe, depth=TRAIN_DEPTH)
         θos.append(np.copy(θo))
         θms.append(np.copy(θm))
         θes.append(np.copy(θe))
@@ -213,6 +167,9 @@ def main():
     plt.subplot(1, 3, 3); sns.heatmap([[e] for e in θe], cmap=cmap, vmin=-FACTOR, vmax=FACTOR, yticklabels=[], xticklabels=[])
     plt.savefig('Labelled-Heatmap.png')
     
+    print(θo)
+    print(θm)
+    print(θe) 
 
 if __name__ == '__main__':
     main()
