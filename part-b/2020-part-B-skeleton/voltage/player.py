@@ -76,10 +76,7 @@ class State():
         return actions 
 
     def result(self, action):
-        ''' Return a new state with the action taken from current state 
-            MOST DEFINNITELY NEEDS TO BE FIXED
-        
-        '''
+        ''' Return a new state with the action taken from current state '''
         
         new_board = deepcopy(self.board)
         if action[0] == MOVE:
@@ -90,20 +87,25 @@ class State():
             new_board[x1][y1] += n
 
         if action[0] == BOOM:
-            def explode_recursive(board, x, y, n_explosions=0):
+            def explode_recursive(board, x0, y0):
                 ''' Returns board once explosion has occurred at coordinates '''
-                # radius is a list of all board positions to blow up
-                radius = [(x_, y_) for x_ in range(x-1, x+2) for y_ in range(y-1, y+2) if 0 <= x_ < 8 and 0 <= y_ < 8]
-                
-                # Try each position
-                for x,y in radius:
-                    # If there's a piece there
-                    if board[x][y]:
-                        n_explosions += abs(board[x][y])
-                        board[x][y] = 0
-                        board, n_explosions = explode_recursive(board, x, y, n_explosions)
-            
-                return board, n_explosions 
+                adj = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
+                to_check = set()
+                to_check.add((x0,y0))
+                ever_seen = set()
+                ever_seen.add((x0, y0))
+                while len(to_check) > 0:
+                    x, y = to_check.pop()
+                    neighbours = [(x + dx, y + dy) for dx,dy in adj if 0 <= x+dx <= 7 
+                                                                    and 0 <= y+dy <= 7 
+                                                                    and (x+dx,y+dy) not in ever_seen
+                                                                    and board[x+dx][y+dy]]
+                    for coords in neighbours:
+                        to_check.add(coords)
+                        ever_seen.add(coords)
+                    board[x][y] = 0
+
+                return board
             
             x0, y0 = action[1]
             explode_recursive(new_board, x0, y0)

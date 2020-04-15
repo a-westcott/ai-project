@@ -23,7 +23,10 @@ R0 =[(3, 3), (3, 4),
 RINGS = [R0, R1, R2, R3]
 
 
-def Φ(state):
+def Φ(state, memoized_states={}): 
+    if state in memoized_states:
+        return memoized_states[state]
+
     X, O = 1, 0
     board = state.board
     opp_b = State(-1*board).board
@@ -76,7 +79,8 @@ def Φ(state):
         max_lost = 0
         adj = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
 
-        check_spots = [[x+dx,y+dy] for x,y in player_stacks for dx,dy in adj if 0 <= x+dx <= 7 and 0 <= y+dy <= 7 and [x+dx,y+dy] not in player_stacks]
+        check_spots = set()
+        [check_spots.add((x+dx,y+dy)) for x,y in player_stacks for dx,dy in adj if 0 <= x+dx <= 7 and 0 <= y+dy <= 7 and [x+dx,y+dy] not in player_stacks]
         if num_pieces:
             starting_pieces = pieces(player)
         else:
@@ -240,7 +244,7 @@ def Φ(state):
         NORM = 24
         col = []
         for row in range(8):
-            col.append(row[column])
+            col.append(board[row][column])
         col = np.array(col)
         if player == X:
             return col[col > 0].sum()/NORM
@@ -251,7 +255,7 @@ def Φ(state):
         NORM = 8
         col = []
         for row in range(8):
-            col.append(row[column])
+            col.append(board[row][column])
         col = np.array(col)
         
         if player == X:
@@ -268,9 +272,22 @@ def Φ(state):
     # Closeness to centre
 
 
-    functions = [pieces, stacks, actions, connectivity, threat, av_stack_size]
+    f1s = [largest_connected_cluster, largest_almost_connected_cluster_stacks, largest_almost_connected_cluster_pieces,
+           mobility, pieces, stacks, actions, connectivity, threat, av_stack_size]
+    f2s = [piece_centrality, stack_centrality]
+    f3s = [column_piece_count, column_stack_count]
 
-    
-    return np.array([f(player) for f in functions for player in [X, O]] +
-                    [f(X) - f(O) for f in functions] + 
-                    [])
+    features = np.array([f(player) for f in f1s for player in [X, O]] +
+                    [f(X) - f(O) for f in f1s] + 
+                    [f(player, ring) for f in f2s for ring in RINGS for player in [X, O]] +
+                    [f(X, ring) - f(O, ring) for f in f2s for ring in RINGS] + 
+                    [f(player, col) for f in f3s for col in range(8) for player in [X, O]] +
+                    [f(X, col) - f(O, col) for f in f3s for col in range(8)])
+    memoized_states[state] = features
+    return features
+
+def main():
+    print(Φ())
+
+if __name__ == '__main__':
+    main()

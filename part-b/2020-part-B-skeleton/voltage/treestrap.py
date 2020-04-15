@@ -8,6 +8,8 @@ from features import Φ, ALL_STACKS, RINGS
 INF = 99.0
 TRAIN_DEPTH = 2
 
+num_features = len(Φ(State()))
+
 def H(features, θ):
     h = np.dot(features, θ)
     if h > 0.99*INF:
@@ -54,9 +56,10 @@ def tree_strap_train(θo, θm, θe, depth=TRAIN_DEPTH, tdl=False):
                 #𝛿 = V(s) - H(features, θ)
                 𝛿 = vs - hs
                 Δθ += α*𝛿*features*λ**(depth-d)
-                s.board *= -1
-                𝛿 = -(vs - hs)
-                Δθ += α*𝛿*Φ(s)*λ**(depth-d)
+                #s.board *= -1
+                #flipped_features = Φ(s)
+                #𝛿 = -(vs - hs) THIS IS ALL WRONG BTW, RECALCULATE V AND H
+                #Δθ += α*𝛿*flipped_features*λ**(depth-d)
             
             for i in range(num_features):
                 if Δθ[i] > MAX_CHANGE:
@@ -146,22 +149,20 @@ def negamax2(state, depth, θ):
             best_action = a
     return best_action
 
-
-N_GAMES = 2
+N_GAMES = 3
 def main():
-    θo = np.array([-0.31923688,  0.25083284, -0.30244211, -0.0489124,  -0.3328332,   0.09468402,
-    0.48055289,  0.47096562,  0.07606004,  0.04764147, -0.37635794, -0.09468402,
-    -0.16457624,  0.29515123,  0.4352868,  -0.73503295, -0.01776477, -0.24063195])
-    θm = np.array([-0.31923688,  0.25083284, -0.30244211, -0.0489124,  -0.3328332,   0.09468402,
-    0.48055289,  0.47096562,  0.07606004,  0.04764147, -0.37635794, -0.09468402,
-    -0.16457624,  0.29515123,  0.4352868,  -0.73503295, -0.01776477, -0.24063195])
-    θe = np.array([-0.31923688,  0.25083284, -0.30244211, -0.0489124,  -0.3328332,   0.09468402,
-    0.48055289,  0.47096562,  0.07606004,  0.04764147, -0.37635794, -0.09468402,
-    -0.16457624,  0.29515123,  0.4352868,  -0.73503295, -0.01776477, -0.24063195])
+    θo = np.random.uniform(-0.01, 0.01, num_features)
+    θm = np.random.uniform(-0.01, 0.01, num_features)
+    θe = np.random.uniform(-0.01, 0.01, num_features)
+
+    θo = np.zeros(num_features)
+    θm = np.zeros(num_features)
+    θe = np.zeros(num_features)
+
     θos, θms, θes = [np.copy(θo)], [np.copy(θm)], [np.copy(θe)]
     for _ in range(N_GAMES):
         print('Game #', _)
-        θo, θm, θe = tree_strap_train(θo, θm, θe, True)
+        θo, θm, θe = tree_strap_train(θo, θm, θe, depth=TRAIN_DEPTH, tdl=False)
         θos.append(np.copy(θo))
         θms.append(np.copy(θm))
         θes.append(np.copy(θe))
@@ -212,6 +213,6 @@ def main():
     plt.subplot(1, 3, 3); sns.heatmap([[e] for e in θe], cmap=cmap, vmin=-FACTOR, vmax=FACTOR, yticklabels=[], xticklabels=[])
     plt.savefig('Labelled-Heatmap.png')
     
-num_features = len(Φ(State()))
+
 if __name__ == '__main__':
     main()
