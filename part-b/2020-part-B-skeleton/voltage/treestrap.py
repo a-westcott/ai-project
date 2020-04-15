@@ -17,7 +17,7 @@ def H(features, θ):
         return -0.99*INF
     return h
 
-α = 0.00001
+α = 0.000001*3
 λ = 0.5
 MAX_CHANGE = 0.1
 def tree_strap_train(θo, θm, θe, depth=TRAIN_DEPTH):
@@ -107,11 +107,11 @@ def negamax(state, alpha, beta, depth, θ):
         alpha = max(alpha, v)
     return v
 
-N_GAMES = 8
+N_GAMES = 20
 def main():
-    θo = np.random.uniform(-0.01, 0.01, num_features)
-    θm = np.random.uniform(-0.01, 0.01, num_features)
-    θe = np.random.uniform(-0.01, 0.01, num_features)
+    θo = np.load('opening.npy')
+    θm = np.load('middle.npy')
+    θe = np.load('end.npy')
 
     θos, θms, θes = [np.copy(θo)], [np.copy(θm)], [np.copy(θe)]
     for _ in range(N_GAMES):
@@ -120,6 +120,9 @@ def main():
         θos.append(np.copy(θo))
         θms.append(np.copy(θm))
         θes.append(np.copy(θe))
+        np.save('opening', θo)
+        np.save('middle', θm)
+        np.save('end', θe)
         
     cmap = sns.diverging_palette(10, 133, as_cmap=True)
     fig = plt.figure(figsize=(20, 4))
