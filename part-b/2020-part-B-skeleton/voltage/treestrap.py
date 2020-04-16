@@ -107,7 +107,7 @@ def negamax(state, alpha, beta, depth, θ):
         alpha = max(alpha, v)
     return v
 
-N_GAMES = 20
+N_GAMES = 1
 def main():
     θo = np.load('opening.npy')
     θm = np.load('middle.npy')
@@ -123,6 +123,37 @@ def main():
         np.save('opening', θo)
         np.save('middle', θm)
         np.save('end', θe)
+        if not _%10:
+            fig = plt.figure(figsize=(20, 20))
+            plt.subplot(3, 1, 1)
+            for i in range(len(θo)):
+                x = [j for j in range(len(θos))]
+                y = [θos[j][i] for j in range(len(θos))]
+                plt.plot(x, y)
+                plt.title('Opening', fontsize=16)
+                plt.ylabel('Weight', fontsize=14)
+            sns.despine()
+
+            plt.subplot(3, 1, 2)
+            for i in range(len(θm)):
+                x = [j for j in range(len(θms))]
+                y = [θms[j][i] for j in range(len(θms))]
+                plt.plot(x, y)
+                plt.title('Mid-Game', fontsize=16)
+                plt.ylabel('Weight', fontsize=14)
+            sns.despine()
+
+            plt.subplot(3, 1, 3)
+            for i in range(len(θe)):
+                x = [j for j in range(len(θes))]
+                y = [θes[j][i] for j in range(len(θes))]
+                plt.plot(x, y)
+                plt.title('Ending', fontsize=16)
+                plt.ylabel('Weight', fontsize=14)
+                plt.xlabel('Game', fontsize=14)
+            sns.despine()
+            plt.savefig('Training.png')
+
         
     cmap = sns.diverging_palette(10, 133, as_cmap=True)
     fig = plt.figure(figsize=(20, 4))
