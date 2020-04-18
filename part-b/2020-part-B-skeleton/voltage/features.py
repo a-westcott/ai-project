@@ -271,18 +271,19 @@ def Φ(state, memoized_states={}):
     # Board position
     # Closeness to centre
 
-
-    f1s = [#largest_connected_cluster, largest_almost_connected_cluster_stacks, largest_almost_connected_cluster_pieces,
+    f1s = [largest_connected_cluster, #largest_almost_connected_cluster_stacks, largest_almost_connected_cluster_pieces,
            mobility, pieces, stacks, actions, connectivity, threat, av_stack_size]
     f2s = [piece_centrality, stack_centrality]
     f3s = [column_piece_count, column_stack_count]
 
-    features = np.array([f(player) for f in f1s for player in [X, O]] +
-                    [f(X) - f(O) for f in f1s] + 
-                    [f(player, ring) for f in f2s for ring in RINGS for player in [X, O]] +
-                    [f(X, ring) - f(O, ring) for f in f2s for ring in RINGS] + 
-                    [f(player, col) for f in f3s for col in range(8) for player in [X, O]] +
-                    [f(X, col) - f(O, col) for f in f3s for col in range(8)])
+    features = [f(player) for f in f1s for player in [X, O]] + \
+               [f(player, ring) for f in f2s for ring in RINGS for player in [X, O]] + \
+               [f(player, col) for f in f3s for col in range(8) for player in [X, O]]
+    diffs = []
+    for i in range(0, len(features, 2)):
+        diffs.append(features[i] - features[i+1])
+    features = np.array(features+diffs)
+
     memoized_states[state] = features
     return features
 
