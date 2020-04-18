@@ -23,7 +23,11 @@ R0 =[(3, 3), (3, 4),
 RINGS = [R0, R1, R2, R3]
 
 
-def Φ(state, memoized_states={}): 
+def Φ(state, memoized_states={}, reset=False): 
+    if reset:
+        memoized_states={}
+        return
+    
     if state in memoized_states:
         return memoized_states[state]
 
@@ -274,13 +278,13 @@ def Φ(state, memoized_states={}):
     f1s = [largest_connected_cluster, #largest_almost_connected_cluster_stacks, largest_almost_connected_cluster_pieces,
            mobility, pieces, stacks, actions, connectivity, threat, av_stack_size]
     f2s = [piece_centrality, stack_centrality]
-    f3s = [column_piece_count, column_stack_count]
+    #f3s = [column_piece_count, column_stack_count]
 
     features = [f(player) for f in f1s for player in [X, O]] + \
-               [f(player, ring) for f in f2s for ring in RINGS for player in [X, O]] + \
-               [f(player, col) for f in f3s for col in range(8) for player in [X, O]]
+               [f(player, ring) for f in f2s for ring in RINGS for player in [X, O]]
+               #[f(player, col) for f in f3s for col in range(8) for player in [X, O]]
     diffs = []
-    for i in range(0, len(features, 2)):
+    for i in range(0, len(features), 2):
         diffs.append(features[i] - features[i+1])
     features = np.array(features+diffs)
     

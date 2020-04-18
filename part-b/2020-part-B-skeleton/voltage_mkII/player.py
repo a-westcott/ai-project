@@ -8,6 +8,8 @@ ALL = [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(0,6),(0,7),(1,0),(1,1),(1,2),(1,3),(
        (6,0),(6,1),(6,2),(6,3),(6,4),(6,5),(6,6),(6,7),(7,0),(7,1),(7,2),(7,3),(7,4),(7,5),(7,6),(7,7)]
 
 
+OPN, DEV, MID, END = 0, 1, 2, 3
+
 import numpy as np
 from copy import deepcopy, copy
 from random import shuffle
@@ -34,6 +36,8 @@ class State():
             self.board = np.copy(board)
         self.turn = 0
         self.history = dd(int)
+        # Stage, num_booms, just_changed_stage?
+        self.stage = [OPN, 0, False]
 
     def actions(self, boom=True):
         """Return a list of the allowable moves at this point."""   
@@ -77,10 +81,10 @@ class State():
                 if (x,y) not in redundant_booms and boom:
                     # boom and get board difference, add all exploded white to redundant_list
                     new_board = self.result(('BOOM', (x,y))).board
-                    diff = self.board - new_board
-                    for x, y in ALL:
-                        if diff[x][y] > 0:
-                            redundant_booms.add((x, y))
+                    diff = np.copy(self.board) - new_board
+                    for x1, y1 in ALL:
+                        if diff[x1][y1] > 0:
+                            redundant_booms.add((x1, y1))
 
                     actions += get_stack_actions(self.board, x, y, boom=True)
                 else:
@@ -123,24 +127,37 @@ class State():
             explode_recursive(new_board, x0, y0)
         
         r = State(new_board)
+        r.stage = self.stage[:]
+        if action[0] == BOOM:
+            r.stage[1] += 1
+            
+        if self.board[self.board > 0].sum() <= 4 and -self.board[self.board < 0].sum() <= 4:
+            r.stage[0] = END
+        elif r.stage[1] >= 4:
+            r.stage[0] = MID
+        elif r.stage[1] >= 2:
+            r.stage[0] = DEV
+
+        r.stage[2] = r.stage[0] != self.stage[0]
+        
         r.turn = self.turn
         r.history = copy(self.history)
         return r
 
-
     def utility(self):
         """Return the value of this final state."""
-        # Draw
-        if not (self.board > 0).any() and not (self.board < 0).any():
+        if (self.turn >= MAX_TURNS*2) or (self.history[self] >= 4):
+            # Draw
             return 0
-        if (self.board > 0).any():
-            return INF
-        return -INF
-        # Distance to opponent
-        # Measure of closeness or spread
-        # Board position
-        # Closeness to centre
-        # Mobility
+        if self.stage[0] == END:
+            # Draw
+            if not (self.board > 0).any() and not (self.board < 0).any():
+                return 0
+            if (self.board > 0).any():
+                return INF*2
+            return -INF*2   
+        piece_adv = self.board[self.board > 0].sum() + self.board[self.board < 0].sum()         
+        return np.sign(piece_adv)*INF + piece_adv
 
     def terminal_test(self):
         """Return True if this is a final state for the game."""
@@ -148,6 +165,9 @@ class State():
         if (self.turn >= MAX_TURNS*2) or (self.history[self] >= 4):
             return True
         return not (self.board < 0).any() or not (self.board > 0).any()
+
+    def stages_terminal_test(self):
+        return self.terminal_test() or self.stage[2]
 
     def display(self):
         """Print or otherwise display the state."""
@@ -159,19 +179,6 @@ class State():
     def __str__(self):
         return '\n'.join([''.join([str(space).rjust(3) for space in row]) for row in self.board])
 
-
-    '''
-    def play_game(self, *players):
-        """Play an n-person, move-alternating game."""
-        state = self.initial
-        while True:
-            for player in players:
-                move = player(self, state)
-                state = self.result(state, move)
-                if self.terminal_test(state):
-                    self.display(state)
-                    return self.utility(state, self.to_move(self.initial))
-    '''
     def __hash__(self): 
         return HASH(self.board.tostring())
 

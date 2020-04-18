@@ -107,11 +107,16 @@ def negamax(state, alpha, beta, depth, θ):
         alpha = max(alpha, v)
     return v
 
-N_GAMES = 1
+N_GAMES = 8
 def main():
-    θo = np.load('opening.npy')
-    θm = np.load('middle.npy')
-    θe = np.load('end.npy')
+    try:
+        θo = np.load('opening.npy')
+        θm = np.load('middle.npy')
+        θe = np.load('end.npy')
+    except:
+        θo = np.random.uniform(-0.01, 0.01, num_features)
+        θm = np.random.uniform(-0.01, 0.01, num_features)
+        θe = np.random.uniform(-0.01, 0.01, num_features)
 
     θos, θms, θes = [np.copy(θo)], [np.copy(θm)], [np.copy(θe)]
     for _ in range(N_GAMES):

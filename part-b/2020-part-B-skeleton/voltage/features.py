@@ -280,7 +280,7 @@ def Φ(state, memoized_states={}):
                [f(player, ring) for f in f2s for ring in RINGS for player in [X, O]] + \
                [f(player, col) for f in f3s for col in range(8) for player in [X, O]]
     diffs = []
-    for i in range(0, len(features, 2)):
+    for i in range(0, len(features), 2):
         diffs.append(features[i] - features[i+1])
     features = np.array(features+diffs)
 
