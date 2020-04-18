@@ -37,7 +37,7 @@ class State():
 
     def actions(self, boom=True):
         """Return a list of the allowable moves at this point."""   
-        def get_stack_actions(board, x, y, boom=False):
+        def get_stack_actions(board, x, y, boom):
             ''' Gets the actions of the stack at (x, y) '''
             # all pieces can boom at their position
             actions = [[BOOM, (x, y)]] if boom else []
@@ -68,11 +68,23 @@ class State():
 
             return actions
 
+        redundant_booms = set()
+
         actions = []
         for x, y in ALL:
             if self.board[x][y] > 0:
-                actions += get_stack_actions(self.board, x, y, boom)
-                
+                # if not in redundant_list
+                if (x,y) not in redundant_booms and boom:
+                    # boom and get board difference, add all exploded white to redundant_list
+                    new_board = self.result(('BOOM', (x,y))).board
+                    diff = self.board - new_board
+                    for x, y in ALL:
+                        if diff[x][y] > 0:
+                            redundant_booms.add((x, y))
+
+                    actions += get_stack_actions(self.board, x, y, boom=True)
+                else:
+                    actions += get_stack_actions(self.board, x, y, boom=False)
         return actions 
 
     def result(self, action):
