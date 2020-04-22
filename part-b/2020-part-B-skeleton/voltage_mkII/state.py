@@ -83,6 +83,13 @@ class State():
                     actions += get_stack_actions(self.board, x, y, boom=True)
                 else:
                     actions += get_stack_actions(self.board, x, y, boom=False)
+
+        # Sort such that moves towards opponent's side are first.  Sort by boom then move
+        if self.turn%2:
+            actions = sorted(actions, key=lambda e: e[3][1] - e[2][1] if e[0] == MOVE else -8)
+        else:
+            actions = sorted(actions, key=lambda e: e[2][1] - e[3][1] if e[0] == MOVE else -8)
+    
         return actions 
 
     def result(self, action):
@@ -134,7 +141,7 @@ class State():
 
         r.stage[2] = r.stage[0] != self.stage[0]
         
-        r.turn = self.turn
+        r.turn = self.turn + 1
         r.history = copy(self.history)
         return r
 

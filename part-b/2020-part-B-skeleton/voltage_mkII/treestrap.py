@@ -44,10 +44,6 @@ def tree_strap_train(θo, θd, θm, θe, depth=TRAIN_DEPTH):
                 #𝛿 = V(s) - H(features, θ)
                 𝛿 = vs - hs
                 Δθ += α*𝛿*features*λ**(depth-d)
-                #s.board *= -1
-                #flipped_features = Φ(s)
-                #𝛿 = -(vs - hs) THIS IS ALL WRONG BTW, RECALCULATE V AND H
-                #Δθ += α*𝛿*flipped_features*λ**(depth-d)
             
             for i in range(num_features):
                 if Δθ[i] > MAX_CHANGE:
@@ -64,7 +60,6 @@ def tree_strap_train(θo, θd, θm, θe, depth=TRAIN_DEPTH):
             state = state.result(max(actions)[1])
 
         state.board *= -1
-        state.turn += 1
     return θo, θd, θm, θe
 
 def minimax(state, depth, θ, searched_states=None):

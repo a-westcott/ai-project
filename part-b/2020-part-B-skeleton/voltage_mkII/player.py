@@ -14,9 +14,15 @@ from copy import deepcopy, copy
 from random import shuffle
 from collections import defaultdict as dd
 
-from state import State
-from features import Φ, H, RINGS, R0, R1, R2, R3, INF
-    
+try:
+    from state import State
+    from features import Φ, H, RINGS, R0, R1, R2, R3, INF
+
+except:
+    from voltage_mkII.state import State
+    from voltage_mkII.features import Φ, H, RINGS, R0, R1, R2, R3, INF
+
+
 class BasePlayer:
     def __init__(self, colour):
         self.colour = colour
@@ -103,7 +109,7 @@ class BasePlayer:
 
 
     def negamax(self, state, alpha, beta, depth, θ):
-        if state.terminal_test():
+        if state.stages_terminal_test():
             return state.utility()
         if depth == 0:
             return H(Φ(state), θ)

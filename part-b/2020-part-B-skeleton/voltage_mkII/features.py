@@ -1,4 +1,8 @@
-from state import State, MOVE, ALL
+try:
+    from state import State, MOVE, ALL
+except:
+    from voltage_mkII.state import State, MOVE, ALL
+
 import numpy as np
 
 INF = 99.0
