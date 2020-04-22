@@ -1,5 +1,7 @@
-from player import State, MOVE, ALL
+from state import State, MOVE, ALL
 import numpy as np
+
+INF = 99.0
 
 ALL_STACKS = 0
 
@@ -21,6 +23,14 @@ R0 =[(3, 3), (3, 4),
      (4, 3), (4, 4)]
 
 RINGS = [R0, R1, R2, R3]
+
+def H(features, θ):
+    h = np.dot(features, θ)
+    if h > 0.99*INF:
+        return 0.99*INF
+    if h < -0.99*INF:
+        return -0.99*INF
+    return h
 
 
 def Φ(state, memoized_states={}, reset=False): 

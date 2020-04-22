@@ -3,21 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import defaultdict as dd
-from features import Φ, ALL_STACKS, RINGS
+from features import Φ, ALL_STACKS, RINGS, H
 
 TRAIN_DEPTH = 2
 
 num_features = len(Φ(State()))
 
-def H(features, θ):
-    h = np.dot(features, θ)
-    if h > 0.99*INF:
-        return 0.99*INF
-    if h < -0.99*INF:
-        return -0.99*INF
-    return h
-
-α = 0.000001*3
+α = 0.0001
 λ = 0.5
 MAX_CHANGE = 0.1
 def tree_strap_train(θo, θd, θm, θe, depth=TRAIN_DEPTH):
@@ -36,6 +28,7 @@ def tree_strap_train(θo, θd, θm, θe, depth=TRAIN_DEPTH):
             θ = θm
         else:
             θ = θe
+            depth = 2*TRAIN_DEPTH
 
         state.history[state] += 1
 
@@ -108,7 +101,7 @@ def negamax(state, alpha, beta, depth, θ):
         alpha = max(alpha, v)
     return v
 
-N_GAMES = 3
+N_GAMES = 500
 def main():
     try:
         θo = np.load('opn.npy')

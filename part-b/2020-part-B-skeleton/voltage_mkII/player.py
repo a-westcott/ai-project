@@ -1,6 +1,5 @@
 BOOM = 'BOOM'
 MOVE = 'MOVE'
-INF = 99.0
 MAX_TURNS = 250
 ALL = [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(0,6),(0,7),(1,0),(1,1),(1,2),(1,3),(1,4),(1,5),(1,6),(1,7),
        (2,0),(2,1),(2,2),(2,3),(2,4),(2,5),(2,6),(2,7),(3,0),(3,1),(3,2),(3,3),(3,4),(3,5),(3,6),(3,7),
@@ -15,185 +14,76 @@ from copy import deepcopy, copy
 from random import shuffle
 from collections import defaultdict as dd
 
-import hashlib
-
-HASH = hash
-
-class State():
-    def __init__(self, board=None):
-        if board is None:
-            self.board = np.array([
-                [1, 1, 0, 0, 0, 0,-1,-1],
-                [1, 1, 0, 0, 0, 0,-1,-1],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [1, 1, 0, 0, 0, 0,-1,-1],
-                [1, 1, 0, 0, 0, 0,-1,-1],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [1, 1, 0, 0, 0, 0,-1,-1],
-                [1, 1, 0, 0, 0, 0,-1,-1]
-            ])
-        else:
-            self.board = np.copy(board)
-        self.turn = 0
-        self.history = dd(int)
-        # Stage, num_booms, just_changed_stage?
-        self.stage = [OPN, 0, False]
-
-    def actions(self, boom=True):
-        """Return a list of the allowable moves at this point."""   
-        def get_stack_actions(board, x, y, boom):
-            ''' Gets the actions of the stack at (x, y) '''
-            # all pieces can boom at their position
-            actions = [[BOOM, (x, y)]] if boom else []
-            # Moves
-            height = abs(board[x][y])
-
-            # all possible move positions on the board, including moves on to oposing pieces
-            all_coords = []
-            for dx in range(1, height+1):
-                if 0 <= x+dx < 8:
-                    all_coords.append((x+dx, y))
-                if 0 <= x-dx < 8:
-                    all_coords.append((x-dx, y))
-
-            for dy in range(1, height+1):
-                if 0 <= y+dy < 8:
-                    all_coords.append((x, y+dy))
-                if 0 <= y-dy < 8:
-                    all_coords.append((x, y-dy))
-
-            # make sure we dont move onto an opposing colour
-            all_coords = [(x1, y1) for x1, y1 in all_coords if (board[x1][y1] == 0) or (board[x1][y1] > 0)]
-
-            # append all the moves with all possible number of pieces moved
-            for n in range(1, height+1):
-                for x_dest, y_dest in all_coords:
-                    actions.append([MOVE, n, (x, y), (x_dest, y_dest)])
-
-            return actions
-
-        redundant_booms = set()
-
-        actions = []
-        for x, y in ALL:
-            if self.board[x][y] > 0:
-                # if not in redundant_list
-                if (x,y) not in redundant_booms and boom:
-                    # boom and get board difference, add all exploded white to redundant_list
-                    new_board = self.result(('BOOM', (x,y))).board
-                    diff = np.copy(self.board) - new_board
-                    for x1, y1 in ALL:
-                        if diff[x1][y1] > 0:
-                            redundant_booms.add((x1, y1))
-
-                    actions += get_stack_actions(self.board, x, y, boom=True)
-                else:
-                    actions += get_stack_actions(self.board, x, y, boom=False)
-        return actions 
-
-    def result(self, action):
-        ''' Return a new state with the action taken from current state '''
-        
-        new_board = deepcopy(self.board)
-        if action[0] == MOVE:
-            move, n, orig, dest = action
-            x0, y0 = orig
-            x1, y1 = dest
-            new_board[x0][y0] -= n
-            new_board[x1][y1] += n
-
-        if action[0] == BOOM:
-            def explode_recursive(board, x0, y0):
-                ''' Returns board once explosion has occurred at coordinates '''
-                adj = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
-                to_check = set()
-                to_check.add((x0,y0))
-                ever_seen = set()
-                ever_seen.add((x0, y0))
-                while len(to_check) > 0:
-                    x, y = to_check.pop()
-                    neighbours = [(x + dx, y + dy) for dx,dy in adj if 0 <= x+dx <= 7 
-                                                                    and 0 <= y+dy <= 7 
-                                                                    and (x+dx,y+dy) not in ever_seen
-                                                                    and board[x+dx][y+dy]]
-                    for coords in neighbours:
-                        to_check.add(coords)
-                        ever_seen.add(coords)
-                    board[x][y] = 0
-
-                return board
-            
-            x0, y0 = action[1]
-            explode_recursive(new_board, x0, y0)
-        
-        r = State(new_board)
-        r.stage = self.stage[:]
-        if action[0] == BOOM:
-            r.stage[1] += 1
-            
-        if self.board[self.board > 0].sum() <= 4 and -self.board[self.board < 0].sum() <= 4:
-            r.stage[0] = END
-        elif r.stage[1] >= 4:
-            r.stage[0] = MID
-        elif r.stage[1] >= 2:
-            r.stage[0] = DEV
-
-        r.stage[2] = r.stage[0] != self.stage[0]
-        
-        r.turn = self.turn
-        r.history = copy(self.history)
-        return r
-
-    def utility(self):
-        """Return the value of this final state."""
-        if (self.turn >= MAX_TURNS*2) or (self.history[self] >= 4):
-            # Draw
-            return 0
-        if self.stage[0] == END:
-            # Draw
-            if not (self.board > 0).any() and not (self.board < 0).any():
-                return 0
-            if (self.board > 0).any():
-                return INF*2
-            return -INF*2   
-        piece_adv = self.board[self.board > 0].sum() + self.board[self.board < 0].sum()         
-        return np.sign(piece_adv)*INF + piece_adv
-
-    def terminal_test(self):
-        """Return True if this is a final state for the game."""
-        # not (black on board and white on board)
-        if (self.turn >= MAX_TURNS*2) or (self.history[self] >= 4):
-            return True
-        return not (self.board < 0).any() or not (self.board > 0).any()
-
-    def stages_terminal_test(self):
-        return self.terminal_test() or self.stage[2]
-
-    def display(self):
-        """Print or otherwise display the state."""
-        print(state)
-
-    def __repr__(self):
-        return str(self)
-
-    def __str__(self):
-        return '\n'.join([''.join([str(space).rjust(3) for space in row]) for row in self.board])
-
-    def __hash__(self): 
-        return HASH(self.board.tostring())
-
-    def __eq__(self, other):
-        return (self.board == other.board).all()
+from state import State
+from features import Φ, H, RINGS, R0, R1, R2, R3, INF
     
 class BasePlayer:
     def __init__(self, colour):
         self.colour = colour
         self.state = State()
+        self.θo = np.array([-0.04065192,  0.98240386,  0.21399769, -0.22235877,  0.85011802,
+       -1.50762139,  0.01374838, -0.20865728,  0.32802495,  0.06697993,
+       -0.18674639,  0.16832556,  0.46233107, -0.2360471 ,  0.08144532,
+        0.16891745,  0.15708984,  0.00479658,  0.18563198, -0.00873461,
+        0.23581813,  0.34106234,  0.06684706,  0.0716444 ,  0.13857156,
+       -0.0455921 ,  0.1798636 ,  0.00151458,  0.18270445,  0.28539379,
+        0.18157295,  0.05796386, -1.15191097,  0.06455535,  1.24706096,
+        0.44442456, -0.06745569, -0.58198248,  0.7459596 , -0.08747214,
+        0.15229326,  0.25768326, -0.1691981 , -0.08729299,  0.18416366,
+        0.17834902, -0.10884975,  0.2019666 ])
+        self.θd = np.array([-0.0921118 ,  0.23446396,  0.35430896, -0.0160212 ,  1.27145615,
+       -1.37676793,  0.15018856, -0.33833674,  0.18870463, -0.0958548 ,
+       -0.11759011,  0.31032584,  0.34138361, -0.05861961,  0.02290695,
+        0.07219197,  0.16296875,  0.01362773,  0.04790711,  0.15109534,
+        0.01085037, -0.17552824, -0.02786685, -0.23754232,  0.14414344,
+       -0.07420715,  0.03915287,  0.09388002,  0.01113138, -0.17847053,
+       -0.02692704, -0.17953908, -0.21546465,  0.00433458,  1.55387262,
+        0.50583738,  0.17344832, -0.31680484,  0.28889211, -0.04928501,
+        0.14934101, -0.10318823,  0.18637861,  0.20976085,  0.21835058,
+       -0.05472715,  0.18960191,  0.15261204])
+        self.θm = np.array([-8.97305066e-02,  1.88991790e-01,  3.88522607e-01, -5.32148410e-02,
+        1.39640490e+00, -1.50640833e+00,  2.39130668e-01, -3.89164246e-01,
+        2.39362497e-01, -2.80658484e-01, -1.18795852e-01,  2.27284643e-01,
+        2.71249941e-01, -1.63805247e-02,  3.40695292e-02,  4.61937863e-02,
+        1.35488016e-01, -9.39941572e-02,  4.20433809e-02,  9.29573688e-02,
+        1.12212175e-01, -3.94304169e-01, -4.44978756e-03,  4.37425216e-05,
+        1.30741881e-01, -1.21312483e-01,  4.17901999e-02,  6.06944909e-02,
+        9.35954281e-02, -3.47894086e-01, -2.69968413e-02,  1.93478320e-02,
+       -1.67611185e-01,  1.08404115e-01,  1.79170211e+00,  6.28294914e-01,
+        4.08909870e-01, -2.34969384e-01,  1.76519355e-01, -1.21242570e-02,
+        2.29482173e-01, -5.09139879e-02,  5.06516344e-01, -4.49353008e-03,
+        2.52054364e-01, -1.89042910e-02,  4.41489514e-01, -4.63446733e-02])
+        self.θe = np.array([  0.76181047,   2.04993016,   3.66014529,  -1.07554045,
+         7.2357857 , -10.2743443 ,   6.27854301,  -9.04050674,
+         2.92161469,  -4.36498686,  -1.07623964,   1.96520426,
+         6.73869475,   4.37829137,   1.17346282,   1.23929993,
+         0.26708828,  -0.15071595,   1.70846322,  -0.76717845,
+         3.91104555,  -5.11600705,   1.084996  ,  -2.65104893,
+         0.27191759,  -0.14342991,   1.7462149 ,  -0.80101854,
+         4.01374482,  -5.0403631 ,   1.09054493,  -2.58459725,
+        -1.44184307,   5.86539153,  16.8743646 ,  15.89357711,
+         7.06632053,  -3.06032501,   2.84306859,  -0.19616747,
+         0.41774751,   2.39099007,   9.12842408,   3.80349736,
+         0.43971693,   2.46258283,   9.23613345,   3.72140483])
         
     def action(self):
-        possible_actions = self.state.actions()
-        from random import choice
-        return self.format_action(choice(possible_actions))
+        actions = []
+        depth = 2
+        if self.state.stage[0] == OPN:
+            θ = self.θo
+        elif self.state.stage[0] == DEV:
+            θ = self.θd
+        elif self.state.stage[0] == MID:
+            θ = self.θm
+        else:
+            θ = self.θe
+            depth = 2*depth
+
+        for a in self.state.actions():
+            child = self.state.result(a)
+            actions.append((-self.negamax(State(-1*child.board), -INF, INF, depth-1, θ), a))
+        
+        return self.format_action(max(actions)[1])
 
     def update(self, colour, action):    
         self.state = self.state.result(action) 
@@ -210,3 +100,30 @@ class BasePlayer:
             move, n, orig, dest = action
             statement = (MOVE, n, orig, dest)
         return statement
+
+
+    def negamax(self, state, alpha, beta, depth, θ):
+        if state.terminal_test():
+            return state.utility()
+        if depth == 0:
+            return H(Φ(state), θ)
+
+        v = -INF
+        for a in state.actions():
+            child = state.result(a)
+            # game state must be flipped
+            v = max(v, -self.negamax(State(-1*child.board), alpha, beta, depth-1, θ))
+            if v >= beta:
+                return v
+            alpha = max(alpha, v)
+        return v
+
+
+
+def H(features, θ):
+    h = np.dot(features, θ)
+    if h > 0.99*INF:
+        return 0.99*INF
+    if h < -0.99*INF:
+        return -0.99*INF
+    return h

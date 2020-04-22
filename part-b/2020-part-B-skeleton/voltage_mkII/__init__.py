@@ -5,4 +5,4 @@
 # example import below, you can define it in another file and import
 # it into this module with the name 'Player':
 
-from voltage.player import BasePlayer as Player
+from voltage_mkII.player import BasePlayer as Player
