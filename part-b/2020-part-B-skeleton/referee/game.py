@@ -84,12 +84,12 @@ def play(players,
     curr_player, next_player = players
     while not game.over():
         wait()
-        out(f"{curr_player.name}'s turn", depth=-1, clear=True)
+        out(f"{curr_player.name}'s turn", depth=-1, clear=False)
 
         # Ask the current player for their next action (calling their .action()
         # method).
         action = curr_player.action()
-
+        out("clear?", depth=-1, clear=True)
         # Validate this action (or pass) and apply it to the game if it is
         # allowed. Display the resulting game state.
         game.update(curr_player.colour, action)
