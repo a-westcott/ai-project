@@ -74,7 +74,7 @@ class BasePlayer:
         
     def action(self):
         actions = []
-        depth = 2
+        depth = 4
         if self.state.stage[0] == OPN:
             θ = self.θo
         elif self.state.stage[0] == DEV:
@@ -85,9 +85,13 @@ class BasePlayer:
             θ = self.θe
             depth = 2*depth
 
+        alpha, beta, v = -INF, INF, -INF
         for a in self.state.actions():
             child = self.state.result(a)
-            actions.append((-self.negamax(State(-1*child.board), -INF, INF, depth-1, θ), a))
+            nmax = (-self.negamax(State(-1*child.board), -beta, -alpha, depth-1, θ))
+            actions.append((nmax, a))
+            v = max(v, nmax)
+            alpha = max(alpha, v)
         
         return self.format_action(max(actions)[1])
 
@@ -118,10 +122,11 @@ class BasePlayer:
         for a in state.actions():
             child = state.result(a)
             # game state must be flipped
-            v = max(v, -self.negamax(State(-1*child.board), alpha, beta, depth-1, θ))
-            if v >= beta:
-                return v
+            v = max(v, -self.negamax(State(-1*child.board), -beta, -alpha, depth-1, θ))
             alpha = max(alpha, v)
+            if alpha >= beta:
+                return v
+            
         return v
 
 
