@@ -143,6 +143,7 @@ class State():
         
         r.turn = self.turn + 1
         r.history = copy(self.history)
+        r.history[r] += 1
         return r
 
     def utility(self):

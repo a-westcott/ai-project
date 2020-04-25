@@ -30,8 +30,6 @@ def tree_strap_train(θo, θd, θm, θe, depth=TRAIN_DEPTH):
             θ = θe
             depth = 2*TRAIN_DEPTH
 
-        state.history[state] += 1
-
         if state.turn < random_turns:
             num_actions = len(state.actions(False))
             state = state.result(state.actions(False)[np.random.choice([i for i in range(num_actions)])])
