@@ -18,11 +18,13 @@ try:
     from state import State
     from features import Φ, H, RINGS, R0, R1, R2, R3, INF
     from opening import opening_book
+    from endgame import n_v_one
 
 except:
     from voltage_mkII.state import State
     from voltage_mkII.features import Φ, H, RINGS, R0, R1, R2, R3, INF
     from voltage_mkII.opening import opening_book
+    from voltage_mkII.endgame import n_v_one
 
 class BasePlayer:
     def __init__(self, colour):
@@ -77,9 +79,14 @@ class BasePlayer:
             try:
                 return tuple(opening_book[str(self.state.board)])
             except:
-                print('Failed to get opening move')
-                assert(False)
+                pass
+                #print('Failed to get opening move')
+                #assert(False)
         
+        if (self.state.board[self.state.board < 0].sum() ) >= -2:
+            return self.format_action(n_v_one(self.state))
+
+
         actions = []
         depth = 2
         if self.state.stage[0] == OPN:
