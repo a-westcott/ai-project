@@ -9,3 +9,5 @@ launch.json
 *.fls
 *.log
 *.synctex.gz
+
+voltage_mkII_c
