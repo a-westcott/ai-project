@@ -53,10 +53,13 @@ def tree_strap_train(θo, θd, θm, θe, depth=TRAIN_DEPTH):
             θ += Δθ
 
             actions = []
+            alpha, beta, v = -INF, INF, -INF
             for a in state.actions():
                 child = state.result(a)
-                actions.append((-negamax(State(-1*child.board), -INF, INF, depth-1, θ), a))
-                
+                nmax = -negamax(State(-1*child.board), -beta, -alpha, depth-1, θ)
+                actions.append((nmax, a))
+                v = max(v, nmax)
+                alpha = max(alpha, v)
             state = state.result(max(actions)[1])
 
         state.board *= -1
@@ -90,19 +93,20 @@ def negamax(state, alpha, beta, depth, θ):
     for a in state.actions():
         child = state.result(a)
         # game state must be flipped
-        v = max(v, -negamax(State(-1*child.board), alpha, beta, depth-1, θ))
-        if v >= beta:
-            return v
+        v = max(v, -negamax(State(-1*child.board), -beta, -alpha, depth-1, θ))
         alpha = max(alpha, v)
+        if alpha >= beta:
+            return v
+        
     return v
 
 N_GAMES = 500
 def main():
     try:
-        θo = np.load('opn.npy')
-        θd = np.load('dev.npy')
-        θm = np.load('mid.npy')
-        θe = np.load('end.npy')
+        θo = np.load('w_opn.npy')
+        θd = np.load('w_dev.npy')
+        θm = np.load('w_mid.npy')
+        θe = np.load('w_end.npy')
     except:
         θo = np.array([-1.0, 1, 2, -2, 10, -10, 0, 0, 1, -1, -1, 1, 1, -1, 0, 0, 1, -1, 0, 0, 0, 0, -1, 
                         1, 1, -1, 0, 0, 0, 0, -1, 1, -1, 1, 10, 0, 1, -1, 1, 0, 2, 0, 0, -2, 2, 0, 0, -2])/9
@@ -118,15 +122,15 @@ def main():
         θds.append(np.copy(θd))
         θms.append(np.copy(θm))
         θes.append(np.copy(θe))
-        np.save('opn', θo)
-        np.save('dev', θd)
-        np.save('mid', θm)
-        np.save('end', θe)
+        np.save('w_opn', θo)
+        np.save('w_dev', θd)
+        np.save('w_mid', θm)
+        np.save('w_end', θe)
         
         if game_num%10 == 0:
-
-            # reset memoised dict
-            Φ(None, None, True)
+            if game_num%80 == 0:
+                # reset memoised dict
+                Φ(None, reset=True)
 
             fig = plt.figure(figsize=(20, 20))
             plt.subplot(4, 1, 1)
