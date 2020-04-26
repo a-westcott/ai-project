@@ -17,19 +17,20 @@ from collections import defaultdict as dd
 try:
     from state import State
     from features import Φ, H, RINGS, R0, R1, R2, R3, INF
-    from opening import opening_book
-    from endgame import n_v_one
+    #from opening import opening_book
+    from endgame import n_v_one, NvTwo
 
 except:
     from voltage_mkII.state import State
     from voltage_mkII.features import Φ, H, RINGS, R0, R1, R2, R3, INF
     from voltage_mkII.opening import opening_book
-    from voltage_mkII.endgame import n_v_one
+    from voltage_mkII.endgame import n_v_one, NvTwo
 
 class BasePlayer:
     def __init__(self, colour):
         self.colour = colour
         self.state = State()
+        self.n_v_two = None
         self.θo = np.array([-0.03245203,  0.99824037,  0.22783496, -0.21423782,  0.87932015,
        -1.51462336,  0.03906433, -0.23706977,  0.34055689,  0.07981415,
        -0.20269713,  0.13594931,  0.4811231 , -0.25081762,  0.08269731,
@@ -77,14 +78,22 @@ class BasePlayer:
     def action(self):
         if self.state.turn < 8:
             try:
+                pass
                 return tuple(opening_book[str(self.state.board)])
             except:
                 pass
                 #print('Failed to get opening move')
                 #assert(False)
         
-        if (self.state.board[self.state.board < 0].sum() ) >= -2:
+        # n v one endgame
+        if self.state.board[self.state.board < 0].sum() == -1 and self.state.board[self.state.board > 0].sum() > 1:
             return self.format_action(n_v_one(self.state))
+
+        # n v two endgame
+        if self.state.board[self.state.board < 0].sum() == -2 and self.state.board[self.state.board > 0].sum() > 2:
+            if self.n_v_two is None:
+                self.n_v_two = NvTwo()
+            return self.format_action(self.n_v_two.move(self.state))
 
 
         actions = []

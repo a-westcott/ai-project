@@ -25,6 +25,8 @@ def translate_actions(actions, verbose=False):
     return (readable_actions)
 
 def translate_coord(coord):
+    if type(coord) == int:
+        return coord//8, coord%8
     x,y = coord
     return 8*x + y
 

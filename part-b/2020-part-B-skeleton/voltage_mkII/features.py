@@ -39,6 +39,7 @@ def H(features, θ):
 
 def Φ(state, memoized_states={}, reset=False): 
     if reset:
+        del memoized_states
         memoized_states={}
         return
     
