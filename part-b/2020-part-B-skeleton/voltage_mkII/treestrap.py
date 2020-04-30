@@ -5,7 +5,11 @@ import seaborn as sns
 from collections import defaultdict as dd
 from features import Φ, ALL_STACKS, RINGS, H
 
-TRAIN_DEPTH = 2
+from multiprocessing import Pool, Manager
+
+MULTI = True
+PROCESSES = 8
+TRAIN_DEPTH = 4
 
 num_features = len(Φ(State()))
 
@@ -14,7 +18,8 @@ num_features = len(Φ(State()))
 MAX_CHANGE = 0.1
 def tree_strap_train(θo, θd, θm, θe, depth=TRAIN_DEPTH):
     state = State()
-    random_turns = np.random.choice([0] + [2]*2 + [4]*4 + [8]*8 + 16*[16] + 32*[32])
+    memoised_features = {} if MULTI else None
+    random_turns = 0 #np.random.choice([0] + [2]*2 + [4]*4 + [8]*8 + 16*[16] + 32*[32])
     while (not state.terminal_test()):
         print(f'Turn number {state.turn}')
         print(state)
@@ -34,11 +39,16 @@ def tree_strap_train(θo, θd, θm, θe, depth=TRAIN_DEPTH):
             num_actions = len(state.actions(False))
             state = state.result(state.actions(False)[np.random.choice([i for i in range(num_actions)])])
         else:
-            searched_states = []
-            V = minimax(State(state.board), depth, θ, searched_states)
+            if MULTI:
+                searched_states = set()
+                V = speedy_minimax(State(state.board), depth, θ, searched_states, first=True, memoised_states=memoised_features)[0]
+            else:
+                searched_states = []
+                V = minimax(State(state.board), depth, θ, searched_states)
 
             Δθ = np.zeros(num_features)
             for s, vs, hs, features, d in searched_states:
+                features = np.frombuffer(features)
                 #𝛿 = V(s) - H(features, θ)
                 𝛿 = vs - hs
                 Δθ += α*𝛿*features*λ**(depth-d)
@@ -54,7 +64,7 @@ def tree_strap_train(θo, θd, θm, θe, depth=TRAIN_DEPTH):
             alpha, beta, v = -INF, INF, -INF
             for a in state.actions():
                 child = state.result(a)
-                nmax = -negamax(State(-1*child.board), -beta, -alpha, depth-1, θ)
+                nmax = -negamax(State(-1*child.board), -beta, -alpha, depth-1, θ, memoised_states=memoised_features)
                 actions.append((nmax, a))
                 v = max(v, nmax)
                 alpha = max(alpha, v)
@@ -80,18 +90,51 @@ def minimax(state, depth, θ, searched_states=None):
         searched_states.append((state, maxEval, H(features, θ), features, depth))
     return maxEval
 
+def speedy_minimax(state, depth, θ, searched_states=None, first=False, memoised_states=None):
+    if state.stages_terminal_test():
+        return state.utility(), searched_states
+    if depth == 0:
+        return H(Φ(state, memoised_states), θ), searched_states
 
-def negamax(state, alpha, beta, depth, θ):
+    maxEval = -INF
+    if first:
+        with Manager() as m:
+            d = m.dict(memoised_states)
+            children = [(State(state.result(a).board * -1), depth-1, θ, searched_states, False, d) for a in state.actions()]
+            with Pool(PROCESSES) as p:
+                results = (p.starmap(speedy_minimax, children))
+            memoised_states.update(dict(d))
+
+        evals = [res[0] for res in results]
+        maxEval = max(evals)
+        sets = [res[1] for res in results]
+        for s in sets:
+            searched_states.update(s)
+    else:
+        for a in state.actions():
+            child = state.result(a)
+            maxEval = max(maxEval, -speedy_minimax(State(-1*child.board), depth-1, θ, searched_states, memoised_states=memoised_states)[0])
+        
+    if searched_states is not None:
+        # Store the state, it's V(s) and H(s)
+        features = Φ(state, memoised_states)
+        searched_states.add((state.__hash__(), maxEval, H(features, θ), features.tostring(), depth))
+    return maxEval, searched_states
+
+
+def negamax(state, alpha, beta, depth, θ, memoised_states=None):
     if state.stages_terminal_test():
         return state.utility()
     if depth == 0:
+        if memoised_states:
+            return H(Φ(state, memoised_states), θ)
         return H(Φ(state), θ)
 
     v = -INF
     for a in state.actions():
         child = state.result(a)
         # game state must be flipped
-        v = max(v, -negamax(State(-1*child.board), -beta, -alpha, depth-1, θ))
+        v = max(v, -negamax(State(-1*child.board), -beta, -alpha, depth-1, θ, memoised_states=memoised_states))
         alpha = max(alpha, v)
         if alpha >= beta:
             return v
@@ -126,9 +169,6 @@ def main():
         np.save('w_end', θe)
         
         if game_num%10 == 0:
-            if game_num%80 == 0:
-                # reset memoised dict
-                Φ(None, reset=True)
 
             fig = plt.figure(figsize=(20, 20))
             plt.subplot(4, 1, 1)

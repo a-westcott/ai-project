@@ -15,9 +15,9 @@ from random import shuffle
 from collections import defaultdict as dd
 
 try:
-    from state import State
+    from state import State 
     from features import Φ, H, RINGS, R0, R1, R2, R3, INF
-    #from opening import opening_book
+    from opening import opening_book
     from endgame import n_v_one, NvTwo
 
 except:
@@ -97,7 +97,7 @@ class BasePlayer:
 
 
         actions = []
-        depth = 2
+        depth = 4
         if self.state.stage[0] == OPN:
             θ = self.θo
         elif self.state.stage[0] == DEV:

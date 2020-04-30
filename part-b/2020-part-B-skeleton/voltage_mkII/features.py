@@ -43,8 +43,8 @@ def Φ(state, memoized_states={}, reset=False):
         memoized_states={}
         return
     
-    if state in memoized_states:
-        return memoized_states[state]
+    if state.__hash__() in memoized_states:
+        return memoized_states[state.__hash__()]
 
     X, O = 1, 0
     board = state.board
@@ -303,7 +303,7 @@ def Φ(state, memoized_states={}, reset=False):
         diffs.append(features[i] - features[i+1])
     features = np.array(features+diffs)
     
-    memoized_states[state] = features
+    memoized_states[state.__hash__()] = features
     return features
 
 def main():
