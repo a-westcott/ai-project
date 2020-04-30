@@ -1,5 +1,6 @@
 __pycache__
-launch.json
+
+.vscode
 
 .ipynb_checkpoints
 .pytest_cache
@@ -11,3 +12,6 @@ launch.json
 *.synctex.gz
 
 voltage_mkII_c
+
+search-solution
+2020-partA-tests-hidden
