@@ -9,6 +9,8 @@ ALL = [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(0,6),(0,7),(1,0),(1,1),(1,2),(1,3),(
 
 OPN, DEV, MID, END = 0, 1, 2, 3
 
+DEPTH = 2
+
 import numpy as np
 from copy import deepcopy, copy
 from random import shuffle
@@ -97,7 +99,7 @@ class BasePlayer:
 
 
         actions = []
-        depth = 4
+        depth = 2
         if self.state.stage[0] == OPN:
             θ = self.θo
         elif self.state.stage[0] == DEV:

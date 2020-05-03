@@ -86,9 +86,9 @@ class State():
 
         # Sort such that moves towards opponent's side are first.  Sort by boom then move
         if self.turn%2:
-            actions = sorted(actions, key=lambda e: e[3][1] - e[2][1] if e[0] == MOVE else -8)
+            actions = sorted(actions, key=lambda e: e[3][1] - e[2][1] if e[0] == MOVE else -8 - (8 - e[1][1]))
         else:
-            actions = sorted(actions, key=lambda e: e[2][1] - e[3][1] if e[0] == MOVE else -8)
+            actions = sorted(actions, key=lambda e: e[2][1] - e[3][1] if e[0] == MOVE else -8 -e[1][1])
     
         return actions 
 
@@ -170,6 +170,17 @@ class State():
 
     def stages_terminal_test(self):
         return self.terminal_test() or self.stage[2]
+
+    def training_terminal_test(self):
+        num_op = abs(self.board[self.board < 0].sum())
+        num_us = self.board[self.board > 0].sum()
+        if (num_op <= 2 and num_us > 2) or (num_op == 1 and num_us > 2):
+            return INF*2
+        if (num_op >= 2 and num_us < 2) or (num_op > 2 and num_us == 2):
+            return INF*2
+        if num_op <= 3 and num_us <= 3 and num_op == num_us:
+            return 0
+        return self.terminal_test()
 
     def display(self):
         """Print or otherwise display the state."""

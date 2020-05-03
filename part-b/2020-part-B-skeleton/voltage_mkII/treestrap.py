@@ -9,7 +9,7 @@ from multiprocessing import Pool, Manager
 
 MULTI = True
 PROCESSES = 8
-TRAIN_DEPTH = 4
+TRAIN_DEPTH = 2
 
 num_features = len(Φ(State()))
 
@@ -19,7 +19,7 @@ MAX_CHANGE = 0.1
 def tree_strap_train(θo, θd, θm, θe, depth=TRAIN_DEPTH):
     state = State()
     memoised_features = {} if MULTI else None
-    random_turns = 0 #np.random.choice([0] + [2]*2 + [4]*4 + [8]*8 + 16*[16] + 32*[32])
+    random_turns = np.random.choice([0] + [2]*2 + [4]*4 + [8]*8 + 16*[16] + 32*[32])
     while (not state.terminal_test()):
         print(f'Turn number {state.turn}')
         print(state)
@@ -44,15 +44,17 @@ def tree_strap_train(θo, θd, θm, θe, depth=TRAIN_DEPTH):
                 V = speedy_minimax(State(state.board), depth, θ, searched_states, first=True, memoised_states=memoised_features)[0]
             else:
                 searched_states = []
-                V = minimax(State(state.board), depth, θ, searched_states)
+                V = negamax(State(state.board), -INF, INF, depth, θ, searched_states)
 
             Δθ = np.zeros(num_features)
             for s, vs, hs, features, d in searched_states:
-                features = np.frombuffer(features)
-                #𝛿 = V(s) - H(features, θ)
-                𝛿 = vs - hs
-                Δθ += α*𝛿*features*λ**(depth-d)
-            
+                # updates should only happen for states that match the player to play
+                if not d % 2:
+                    features = np.frombuffer(features)
+                    #𝛿 = V(s) - H(features, θ)
+                    𝛿 = vs - hs
+                    Δθ += α*𝛿*features*λ**(depth-d)
+                
             for i in range(num_features):
                 if Δθ[i] > MAX_CHANGE:
                     Δθ[i] = MAX_CHANGE
@@ -91,12 +93,13 @@ def minimax(state, depth, θ, searched_states=None):
     return maxEval
 
 def speedy_minimax(state, depth, θ, searched_states=None, first=False, memoised_states=None):
-    if state.stages_terminal_test():
+    if state.training_terminal_test():
         return state.utility(), searched_states
     if depth == 0:
         return H(Φ(state, memoised_states), θ), searched_states
 
     maxEval = -INF
+    # set up multiprocessing sharing the memoised states dict, 
     if first:
         with Manager() as m:
             d = m.dict(memoised_states)
@@ -120,7 +123,6 @@ def speedy_minimax(state, depth, θ, searched_states=None, first=False, memoised
         features = Φ(state, memoised_states)
         searched_states.add((state.__hash__(), maxEval, H(features, θ), features.tostring(), depth))
     return maxEval, searched_states
-
 
 def negamax(state, alpha, beta, depth, θ, memoised_states=None):
     if state.stages_terminal_test():
@@ -149,8 +151,7 @@ def main():
         θm = np.load('w_mid.npy')
         θe = np.load('w_end.npy')
     except:
-        θo = np.array([-1.0, 1, 2, -2, 10, -10, 0, 0, 1, -1, -1, 1, 1, -1, 0, 0, 1, -1, 0, 0, 0, 0, -1, 
-                        1, 1, -1, 0, 0, 0, 0, -1, 1, -1, 1, 10, 0, 1, -1, 1, 0, 2, 0, 0, -2, 2, 0, 0, -2])/9
+        θo = np.zeros(len(Φ(State())))
         θd = np.copy(θo)
         θm = np.copy(θo)
         θe = np.copy(θo)
