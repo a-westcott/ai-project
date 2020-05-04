@@ -143,12 +143,12 @@ class State():
         
         r.turn = self.turn + 1
         r.history = copy(self.history)
-        r.history[r] += 1
+        r.history[r.__hash__()] += 1
         return r
 
     def utility(self):
         """Return the value of this final state."""
-        if (self.turn >= MAX_TURNS*2) or (self.history[self] >= 4):
+        if (self.turn >= MAX_TURNS*2) or (self.history[self.__hash__()] >= 4):
             # Draw
             return 0
         if self.stage[0] == END:
@@ -164,7 +164,7 @@ class State():
     def terminal_test(self):
         """Return True if this is a final state for the game."""
         # not (black on board and white on board)
-        if (self.turn >= MAX_TURNS*2) or (self.history[self] >= 4):
+        if (self.turn >= MAX_TURNS*2) or (self.history[self.__hash__()] >= 4):
             return True
         return not (self.board < 0).any() or not (self.board > 0).any()
 

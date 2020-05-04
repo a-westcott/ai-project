@@ -370,6 +370,9 @@ def Φ(state, memoized_states={}, reset=False):
     memoized_states[state.__hash__()] = features
     return features
 
+
+num_features = len(Φ(State()))
+
 def main():
     state = State()
 

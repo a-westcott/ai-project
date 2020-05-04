@@ -4,12 +4,15 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import defaultdict as dd
 from features import Φ, ALL_STACKS, RINGS, H
+from ab_treestrap_train import alpha_beta_train, ab_weight_updates
 
 from multiprocessing import Pool, Manager
 
-MULTI = True
+MULTI = False
 PROCESSES = 8
-TRAIN_DEPTH = 2
+
+AB_TRAIN = True
+TRAIN_DEPTH = 4
 
 num_features = len(Φ(State()))
 
@@ -18,9 +21,10 @@ num_features = len(Φ(State()))
 MAX_CHANGE = 0.1
 def tree_strap_train(θo, θd, θm, θe, depth=TRAIN_DEPTH):
     state = State()
-    memoised_features = {} if MULTI else None
-    random_turns = np.random.choice([0] + [2]*2 + [4]*4 + [8]*8 + 16*[16] + 32*[32])
-    while (not state.terminal_test()):
+    #memoised_features = {} if MULTI else None
+    memoised_features = {}
+    random_turns = np.random.choice([0] + [2]*2 + [4]*4 + [8]*8 + 16*[16] + 332*[32])
+    while (not state.training_terminal_test()):
         print(f'Turn number {state.turn}')
         print(state)
         print()
@@ -33,7 +37,7 @@ def tree_strap_train(θo, θd, θm, θe, depth=TRAIN_DEPTH):
             θ = θm
         else:
             θ = θe
-            depth = 2*TRAIN_DEPTH
+            #depth = 2*TRAIN_DEPTH
 
         if state.turn < random_turns:
             num_actions = len(state.actions(False))
@@ -42,25 +46,30 @@ def tree_strap_train(θo, θd, θm, θe, depth=TRAIN_DEPTH):
             if MULTI:
                 searched_states = set()
                 V = speedy_minimax(State(state.board), depth, θ, searched_states, first=True, memoised_states=memoised_features)[0]
-            else:
+            elif not AB_TRAIN:
                 searched_states = []
                 V = negamax(State(state.board), -INF, INF, depth, θ, searched_states)
-
-            Δθ = np.zeros(num_features)
-            for s, vs, hs, features, d in searched_states:
-                # updates should only happen for states that match the player to play
-                if not d % 2:
-                    features = np.frombuffer(features)
-                    #𝛿 = V(s) - H(features, θ)
-                    𝛿 = vs - hs
-                    Δθ += α*𝛿*features*λ**(depth-d)
-                
-            for i in range(num_features):
-                if Δθ[i] > MAX_CHANGE:
-                    Δθ[i] = MAX_CHANGE
-                elif Δθ[i] < -MAX_CHANGE:
-                    Δθ[i] = -MAX_CHANGE
-            θ += Δθ
+            
+            if AB_TRAIN:
+                searched_states = []
+                alpha_beta_train(state, θ, searched_states, TRAIN_DEPTH, memoised_features)
+                ab_weight_updates(searched_states, θ, depth)
+            else:
+                Δθ = np.zeros(num_features)
+                for s, vs, hs, features, d in searched_states:
+                    # updates should only happen for states that match the player to play
+                    if not d % 2:
+                        features = np.frombuffer(features)
+                        #𝛿 = V(s) - H(features, θ)
+                        𝛿 = vs - hs
+                        Δθ += α*𝛿*features*λ**(depth-d)
+                    
+                for i in range(num_features):
+                    if Δθ[i] > MAX_CHANGE:
+                        Δθ[i] = MAX_CHANGE
+                    elif Δθ[i] < -MAX_CHANGE:
+                        Δθ[i] = -MAX_CHANGE
+                θ += Δθ
 
             actions = []
             alpha, beta, v = -INF, INF, -INF
@@ -146,12 +155,18 @@ def negamax(state, alpha, beta, depth, θ, memoised_states=None):
 N_GAMES = 500
 def main():
     try:
-        θo = np.load('w_opn.npy')
-        θd = np.load('w_dev.npy')
-        θm = np.load('w_mid.npy')
-        θe = np.load('w_end.npy')
+        #θo = np.load('w_opn.npy')
+        #θd = np.load('w_dev.npy')
+        #θm = np.load('w_mid.npy')
+        #θe = np.load('w_end.npy')
+        θo = np.load('o3.npy')
+        θd = np.load('d3.npy')
+        θm = np.load('m3.npy')
+        θe = np.load('e3.npy')
+
     except:
-        θo = np.zeros(len(Φ(State())))
+        θo = np.random.uniform(-0.05, 0.05, len(Φ(State())))
+        θo[72] = 15 # i think this is piece difference
         θd = np.copy(θo)
         θm = np.copy(θo)
         θe = np.copy(θo)

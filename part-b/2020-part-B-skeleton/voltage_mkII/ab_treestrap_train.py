@@ -1,11 +1,15 @@
 U_BOUND, EXACT, L_BOUND = 1, 0, -1
 
-from treestrap import INF, TRAIN_DEPTH, MAX_CHANGE, λ, α, num_features
-from features import H, Φ 
+import numpy as np
+
+from features import H, Φ,INF, num_features 
 from state import State
 
+α = 0.0001
+λ = 0.5
+MAX_CHANGE = 0.1
 
-def alpha_beta(state, θ, searched_states, depth=TRAIN_DEPTH):
+def alpha_beta_train(state, θ, searched_states, depth, memoised_features=None):
     '''
     Assume always called with max first, even depth
     return value takes form:
@@ -24,64 +28,69 @@ def alpha_beta(state, θ, searched_states, depth=TRAIN_DEPTH):
     confident it is for min (maybe less confident if depth > 4...)
     '''
     assert(depth %2 != 1)
-    return max_value(state, -INF, INF, depth, θ, searched_states)
+    return max_value(state, -INF, INF, depth, θ, searched_states, memoised_features)
 
-def max_value(state, alpha, beta, depth, θ, searched_states):
+def max_value(state, alpha, beta, depth, θ, searched_states, memoised_features=None):
     if state.stages_terminal_test():
         return state.utility(), -state.utility()
     if depth == 0:
-        return H(Φ(state), θ), -INF
+        return H(Φ(state, memoised_features), θ), -INF
 
     v0, v1 = -INF, INF
     for a in state.actions():
         child = state.result(a)
-        pot_v0, pot_v1 = min_value(State(-1*child.board), alpha, beta, depth-1, θ, searched_states)
+        pot_v0, pot_v1 = min_value(State(-1*child.board), alpha, beta, depth-1, θ, searched_states, memoised_features)
         v1 = min(v1, pot_v1)
         v0 = max(v0, pot_v0)
         if v0 >= beta:
             if depth > 1:
                 # update searched states
                 # v0 is a L_BOUND, v1 is a U_BOUND
-                searched_states.append((state, v0, L_BOUND, H(features, θ), Φ(state), depth))
+                features = Φ(state, memoised_features)
+                searched_states.append((state, v0, L_BOUND, H(features, θ), features, depth))
             return v0, v1
-    alpha = max(alpha, v0)
+        alpha = max(alpha, v0)
     if depth > 1:
         # update searched states
         # v0 is EXACT, v1 is EXACT
-        searched_states.append((state, v0, EXACT, H(features, θ), Φ(state), depth))
+        features = Φ(state, memoised_features)
+        searched_states.append((state, v0, EXACT, H(features, θ), features, depth))
         pass
     return v0, v1
 
-def min_value(state, alpha, beta, depth, θ, searched_states):
+def min_value(state, alpha, beta, depth, θ, searched_states, memoised_features=None):
     if state.stages_terminal_test():
         return state.utility(), -state.utility()
     
     v0, v1 = INF, -INF
     # we assume whole alpha beta called with even depth, so this is the last min value call
     if depth == 1:
-        v1 = H(Φ(state), θ)
+        v1 = H(Φ(state, memoised_features), θ)
 
     for a in state.actions():
         child = state.result(a)
-        pot_v0, pot_v1 = max_value(State(-1*child.board), alpha, beta, depth-1, θ, searched_states)
+        pot_v0, pot_v1 = max_value(State(-1*child.board), alpha, beta, depth-1, θ, searched_states, memoised_features)
         v1 = max(v1, pot_v1)
         v0 = min(v0, pot_v0)
         if v0 <= alpha:
             if depth > 1:
                 # update searched_states
                 # v0 is a U_BOUND, v1 is a L_BOUND
-                searched_states.append((state, v1, L_BOUND, H(features, θ), Φ(state), depth))
+                features = Φ(state, memoised_features)
+                searched_states.append((state, v1, L_BOUND, H(features, θ), features, depth))
             return v0, v1   
-    beta = min(beta, v0)     
+        beta = min(beta, v0)     
     if depth > 1:
         # update searched states
         # v0 is EXACT, v1 is EXACT
-        searched_states.append((state, v1, EXACT, H(features, θ), Φ(state), depth))
+        features = Φ(state, memoised_features)
+        searched_states.append((state, v1, EXACT, H(features, θ), features, depth))
         pass
     return v0, v1
 
 
 def ab_weight_updates(searched_states, θ, depth):
+    Δθ = np.zeros(num_features)
     for state, vs, bound, hs, features, d in searched_states:
         # determine whether we should update
         update = False
