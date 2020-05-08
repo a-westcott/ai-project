@@ -1,11 +1,9 @@
 try:
-    from state import State, MOVE, ALL
+    from state import State, MOVE, ALL, INF
 except:
-    from voltage_mkII.state import State, MOVE, ALL
+    from voltage_mkII.state import State, MOVE, ALL, INF
 
 import numpy as np
-
-INF = 99.0
 
 ALL_STACKS = 0
 
@@ -48,8 +46,8 @@ def Φ(state, memoized_states={}, reset=False):
         memoized_states={}
         return
     
-    if state.__hash__() in memoized_states:
-        return memoized_states[state.__hash__()]
+    if state in memoized_states:
+        return memoized_states[state]
 
     X, O = 1, 0
     board = state.board
@@ -286,24 +284,17 @@ def Φ(state, memoized_states={}, reset=False):
     def column_piece_count(player, column):
         ''' How many pieces are in the column '''
         NORM = 12
-        b = np.array([row[::-1] for row in State().board]) if state.turn%2 else board
-        col = []
-        for row in range(8):
-            col.append(b[row][column])
-        col = np.array(col)
+        col = board[:,::-1][:,column] if state.turn%2 else board[:,column]
+        
         if player == X:
             return col[col > 0].sum()/NORM
         return -col[col < 0].sum()/NORM
         
     def column_stack_count(player, column):
-        ''' How many stacks of certain size are in the column '''
+        ''' How many stacks are in the column '''
         NORM = 8
-        b = np.array([row[::-1] for row in State().board]) if state.turn%2 else board
-        col = []
-        for row in range(8):
-            col.append(b[row][column])
-        col = np.array(col)
-        
+        col = board[:,::-1][:,column] if state.turn%2 else board[:,column]
+
         if player == X:
             return (col > 0).sum()/NORM
         return (col < 0).sum()/NORM
@@ -343,11 +334,14 @@ def Φ(state, memoized_states={}, reset=False):
 
         return running_total/len(X_stacks)/NORM
 
+    def ratio():
+        return pieces(X) / pieces(O)
+
     # Board position
     # Closeness to centre
 
-    f1s = [largest_connected_cluster, #largest_almost_connected_cluster_stacks, largest_almost_connected_cluster_pieces,
-           mobility, pieces, stacks, actions, connectivity, threat, av_stack_size, spacing, closest_opposing_pieces, avg_closeness]
+    f1s = [largest_connected_cluster, #largest_almost_connected_cluster_stacks, largest_almost_connected_cluster_pieces, spacing,
+           mobility, pieces, stacks, actions, connectivity, threat, av_stack_size, closest_opposing_pieces, avg_closeness]
     f2s = [piece_centrality, stack_centrality]
     f3s = [column_piece_count, column_stack_count]
 
@@ -357,7 +351,7 @@ def Φ(state, memoized_states={}, reset=False):
     diffs = []
     for i in range(0, len(features), 2):
         diffs.append(features[i] - features[i+1])
-    features = features+diffs
+    features = [ratio()] + features+diffs
     
     piece_adv = (np.sign(pieces(X) - pieces(O)) + 1)//2
 
@@ -367,7 +361,7 @@ def Φ(state, memoized_states={}, reset=False):
         features.append((1-piece_adv) * features[i])
     
     features = np.array(features)
-    memoized_states[state.__hash__()] = features
+    memoized_states[state] = features
     return features
 
 
@@ -375,9 +369,6 @@ num_features = len(Φ(State()))
 
 def main():
     state = State()
-
-
-
 
 if __name__ == '__main__':
     main()

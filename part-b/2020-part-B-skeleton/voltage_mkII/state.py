@@ -4,7 +4,7 @@ from copy import deepcopy, copy
 
 BOOM = 'BOOM'
 MOVE = 'MOVE'
-INF = 99.0
+INF = 100.0
 MAX_TURNS = 250
 ALL = [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(0,6),(0,7),(1,0),(1,1),(1,2),(1,3),(1,4),(1,5),(1,6),(1,7),
        (2,0),(2,1),(2,2),(2,3),(2,4),(2,5),(2,6),(2,7),(3,0),(3,1),(3,2),(3,3),(3,4),(3,5),(3,6),(3,7),
@@ -141,30 +141,54 @@ class State():
 
         r.stage[2] = r.stage[0] != self.stage[0]
         
+        r.board *= -1
         r.turn = self.turn + 1
         r.history = copy(self.history)
-        r.history[r.__hash__()] += 1
+        r.history[r] += 1
         return r
 
-    def utility(self):
+    def utility(self, train_end=False, stage=False):
         """Return the value of this final state."""
-        if (self.turn >= MAX_TURNS*2) or (self.history[self.__hash__()] >= 4):
+        if train_end:
+            num_op = abs(self.board[self.board < 0].sum())
+            num_us = self.board[self.board > 0].sum()
+            if (num_op <= 2 and num_us > 2) or (num_op == 1 and num_us > 2):
+                return INF*2
+            if (num_op >= 2 and num_us < 2) or (num_op > 2 and num_us == 2):
+                return INF*2
+            if num_op <= 3 and num_us <= 3 and num_op == num_us and num_us != 0:
+                return 0
+        
+        if (self.turn >= MAX_TURNS*2) or (self.history[self] >= 4):
             # Draw
             return 0
-        if self.stage[0] == END:
+
+        if stage:
+            if self.stage[0] == END:
+                # Draw
+                if not (self.board > 0).any() and not (self.board < 0).any():
+                    return 0
+                if (self.board > 0).any():
+                    return INF*2
+                return -INF*2   
+            piece_adv = self.board[self.board > 0].sum() + self.board[self.board < 0].sum()         
+            return np.sign(piece_adv)*INF + piece_adv
+
+        if (self.turn >= MAX_TURNS*2) or (self.history[self] >= 4):
             # Draw
-            if not (self.board > 0).any() and not (self.board < 0).any():
-                return 0
-            if (self.board > 0).any():
-                return INF*2
-            return -INF*2   
-        piece_adv = self.board[self.board > 0].sum() + self.board[self.board < 0].sum()         
-        return np.sign(piece_adv)*INF + piece_adv
+            return 0 #-INF/3
+        if not (self.board > 0).any() and not (self.board < 0).any():
+            return 0 #-INF/3
+        if (self.board > 0).any():
+            return INF*2
+        return -INF*2
+        
+        
 
     def terminal_test(self):
         """Return True if this is a final state for the game."""
         # not (black on board and white on board)
-        if (self.turn >= MAX_TURNS*2) or (self.history[self.__hash__()] >= 4):
+        if (self.turn >= MAX_TURNS*2) or (self.history[self] >= 4):
             return True
         return not (self.board < 0).any() or not (self.board > 0).any()
 
@@ -175,11 +199,11 @@ class State():
         num_op = abs(self.board[self.board < 0].sum())
         num_us = self.board[self.board > 0].sum()
         if (num_op <= 2 and num_us > 2) or (num_op == 1 and num_us > 2):
-            return INF*2
+            return True
         if (num_op >= 2 and num_us < 2) or (num_op > 2 and num_us == 2):
-            return INF*2
+            return True
         if num_op <= 3 and num_us <= 3 and num_op == num_us:
-            return 0
+            return True
         return self.terminal_test()
 
     def display(self):
@@ -193,7 +217,8 @@ class State():
         return '\n'.join([''.join([str(space).rjust(3) for space in row]) for row in self.board])
 
     def __hash__(self): 
-        return HASH(self.board.tostring())
+        #return HASH(self.board.tostring())
+        return self.board.tostring().__hash__()
 
     def __eq__(self, other):
         return (self.board == other.board).all()

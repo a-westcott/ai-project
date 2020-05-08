@@ -5,7 +5,7 @@ import numpy as np
 from features import H, Φ,INF, num_features 
 from state import State
 
-α = 0.0001
+α = 0.01
 λ = 0.5
 MAX_CHANGE = 0.1
 
@@ -28,18 +28,20 @@ def alpha_beta_train(state, θ, searched_states, depth, memoised_features=None):
     confident it is for min (maybe less confident if depth > 4...)
     '''
     assert(depth %2 != 1)
-    return max_value(state, -INF, INF, depth, θ, searched_states, memoised_features)
+    a = max_value(state, -4*INF, 4*INF, depth, θ, searched_states, memoised_features)
+    return a
 
 def max_value(state, alpha, beta, depth, θ, searched_states, memoised_features=None):
     if state.stages_terminal_test():
-        return state.utility(), -state.utility()
+        return state.utility(stage=True), -state.utility(stage=True)
     if depth == 0:
-        return H(Φ(state, memoised_features), θ), -INF
+        v0 = H(Φ(state, memoised_features), θ)
+        return v0, -INF
 
-    v0, v1 = -INF, INF
+    v0, v1 = -4*INF, 4*INF
     for a in state.actions():
         child = state.result(a)
-        pot_v0, pot_v1 = min_value(State(-1*child.board), alpha, beta, depth-1, θ, searched_states, memoised_features)
+        pot_v0, pot_v1 = min_value(child, alpha, beta, depth-1, θ, searched_states, memoised_features)
         v1 = min(v1, pot_v1)
         v0 = max(v0, pot_v0)
         if v0 >= beta:
@@ -55,21 +57,20 @@ def max_value(state, alpha, beta, depth, θ, searched_states, memoised_features=
         # v0 is EXACT, v1 is EXACT
         features = Φ(state, memoised_features)
         searched_states.append((state, v0, EXACT, H(features, θ), features, depth))
-        pass
     return v0, v1
 
 def min_value(state, alpha, beta, depth, θ, searched_states, memoised_features=None):
     if state.stages_terminal_test():
-        return state.utility(), -state.utility()
+        return state.utility(stage=True), -state.utility(stage=True)
     
-    v0, v1 = INF, -INF
+    v0, v1 = 4*INF, -4*INF
     # we assume whole alpha beta called with even depth, so this is the last min value call
     if depth == 1:
         v1 = H(Φ(state, memoised_features), θ)
 
     for a in state.actions():
         child = state.result(a)
-        pot_v0, pot_v1 = max_value(State(-1*child.board), alpha, beta, depth-1, θ, searched_states, memoised_features)
+        pot_v0, pot_v1 = max_value(child, alpha, beta, depth-1, θ, searched_states, memoised_features)
         v1 = max(v1, pot_v1)
         v0 = min(v0, pot_v0)
         if v0 <= alpha:
@@ -85,9 +86,7 @@ def min_value(state, alpha, beta, depth, θ, searched_states, memoised_features=
         # v0 is EXACT, v1 is EXACT
         features = Φ(state, memoised_features)
         searched_states.append((state, v1, EXACT, H(features, θ), features, depth))
-        pass
     return v0, v1
-
 
 def ab_weight_updates(searched_states, θ, depth):
     Δθ = np.zeros(num_features)
