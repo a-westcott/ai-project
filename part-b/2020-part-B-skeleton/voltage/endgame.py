@@ -3,8 +3,8 @@ try:
     from state import State
     from player import ALL
 except:
-    from duplicate_for_new_player.state import State
-    from duplicate_for_new_player.player import ALL
+    from voltage.state import State
+    from voltage.player import ALL
 
 RIGHT = 1
 LEFT = -1

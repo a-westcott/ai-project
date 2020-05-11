@@ -182,10 +182,10 @@ def negamax(state, alpha, beta, depth, θ, memoised_states=None):
 N_GAMES = 50000
 def main():
     try:
-        θo = np.load('w_opn-ab1.npy')
-        θd = np.load('w_dev-ab1.npy')
-        θm = np.load('w_mid-ab1.npy')
-        θe = np.load('w_end-ab1.npy')
+        θo = np.load('w_opn-ab3.npy')
+        θd = np.load('w_dev-ab3.npy')
+        θm = np.load('w_mid-ab3.npy')
+        θe = np.load('w_end-ab3.npy')
         #θo = np.load('o33.npy')
         #θd = np.load('d33.npy')
         #θm = np.load('m33.npy')

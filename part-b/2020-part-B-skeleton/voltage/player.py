@@ -9,13 +9,14 @@ ALL = [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(0,6),(0,7),(1,0),(1,1),(1,2),(1,3),(
 
 OPN, DEV, MID, END = 0, 1, 2, 3
 
-DEPTH = 2
+DEPTH = 4
 
 import numpy as np
 from copy import deepcopy, copy
 from random import shuffle
 from collections import defaultdict as dd
 from math import tanh
+from datetime import datetime, timedelta
 
 try:
     from state import State 
@@ -33,9 +34,12 @@ except:
 
 class BasePlayer:
     def __init__(self, colour):
+        self.time = timedelta(seconds=0.01)
+        t = datetime.now()
         self.colour = colour
         self.state = State()
         self.n_v_two = None
+        self.depth = DEPTH
         self.θo = np.load(path+'w_opn-ab.npy')
 
         self.θd = np.load(path+'w_dev-ab.npy')
@@ -43,29 +47,33 @@ class BasePlayer:
         self.θm = np.load(path+'w_mid-ab.npy')
 
         self.θe = np.load(path+'w_end-ab.npy')
+        self.time += datetime.now() - t
 
     def action(self):
+        t = datetime.now()
         if self.state.turn < 8 : #and not self.state.turn % 2:
             try:
                 if str(self.state.board) in opening_book:
+                    self.time += datetime.now() - t
                     return tuple(opening_book[str(self.state.board)])
 
             except:
-                print('Failed to get opening move')
-                assert(False)
+                pass
         
         # n v one endgame
         if self.state.board[self.state.board < 0].sum() == -1 and self.state.board[self.state.board > 0].sum() > 1:
+            self.time += datetime.now() - t
             return self.format_action(n_v_one(self.state))
 
         # n v two endgame
         if self.state.board[self.state.board < 0].sum() == -2 and self.state.board[self.state.board > 0].sum() > 2:
             if self.n_v_two is None:
                 self.n_v_two = NvTwo()
+            self.time += datetime.now() - t
             return self.format_action(self.n_v_two.move(self.state))
 
-
-        depth = DEPTH
+        
+        
         if self.state.stage[0] == OPN:
             θ = self.θo
         elif self.state.stage[0] == DEV:
@@ -74,8 +82,15 @@ class BasePlayer:
             θ = self.θm
         else:
             θ = self.θe
-            depth = depth
 
+        if timedelta(seconds=59.6) < self.time:
+            self.time += datetime.now() - t
+            return self.format_action(self.state.actions()[0])
+
+        if timedelta(seconds=56) < self.time:
+            self.depth = 1
+
+        depth = self.depth
 
         best_action = None
         alpha, beta = -4*INF, 4*INF
@@ -85,13 +100,13 @@ class BasePlayer:
             if nmax > alpha:
                 alpha = nmax
                 best_action = a
-        
+        self.time += datetime.now() - t
         return self.format_action(best_action)
 
     def update(self, colour, action):    
+        t = datetime.now()
         self.state = self.state.result(action) 
-        # invert the sign of the pieces so that positive has the next move
-        #self.state.board = -1*self.state.board
+        self.time += datetime.now() - t
 
     def format_action(self, action):
         if action[0] == BOOM:
