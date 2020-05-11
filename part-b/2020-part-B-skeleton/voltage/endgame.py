@@ -47,10 +47,11 @@ def n_v_one_eval_moves(state, moves, Ox, Oy):
     '''
     # try avoid repeated states and boom
     i=0
+    cont=False
     while i < len(moves):
         potential = moves[i]
         result = state.result(potential)
-        if result.history[result] >= 4:
+        if result.history[result] >= 3:
             i += 1
             continue
         
@@ -58,6 +59,17 @@ def n_v_one_eval_moves(state, moves, Ox, Oy):
         boomed = result.result(('BOOM', (Ox, Oy)))
         if not (boomed.board > 0).any() and not (boomed.board < 0).any():
             i += 1
+            continue
+
+        # check to make sure opponent can't move into a draw
+        for a in result.actions():
+            opp_moved = result.result(a)
+            if opp_moved.terminal_test():
+                i += 1
+                cont = True
+                break
+        if cont:
+            cont = False
             continue
 
         return potential

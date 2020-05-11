@@ -9,7 +9,7 @@ ALL = [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(0,6),(0,7),(1,0),(1,1),(1,2),(1,3),(
 
 OPN, DEV, MID, END = 0, 1, 2, 3
 
-DEPTH = 4
+DEPTH = 2
 
 import numpy as np
 from copy import deepcopy, copy
@@ -60,17 +60,15 @@ class BasePlayer:
             except:
                 pass
         
-        # n v one endgame
-        if self.state.board[self.state.board < 0].sum() == -1 and self.state.board[self.state.board > 0].sum() > 1:
-            self.time += datetime.now() - t
-            return self.format_action(n_v_one(self.state))
-
         # n v two endgame
         if self.state.board[self.state.board < 0].sum() == -2 and self.state.board[self.state.board > 0].sum() > 2:
             if self.n_v_two is None:
                 self.n_v_two = NvTwo()
-            self.time += datetime.now() - t
             return self.format_action(self.n_v_two.move(self.state))
+
+        # n v one endgame, or opponent hanging out in one stack
+        if len(self.state.board[self.state.board < 0]) == 1 and self.state.board[self.state.board > 0].sum() > 1:
+            return self.format_action(n_v_one(self.state))
 
         
         
