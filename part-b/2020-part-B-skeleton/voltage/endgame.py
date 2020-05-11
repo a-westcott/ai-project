@@ -125,20 +125,20 @@ class NvTwo():
                 self.direction = LEFT if state.turn %2 else RIGHT
                 self.goals = [(x, self.column) for x in self.goal_x]
             
-            # fix any immediate threats if we need to
+
 
             # if we have < 3 stacks, move current ones to goals if not already there
-            #if len(X_stacks) < 3:
-            #    for stack in X_stacks:
-            #        if stack not in self.goals:
-            #            moves = sorted(state.actions(boom=False), key=self.eval_move)
-            #            return moves[0]
+            if len(X_stacks) < 3:
+               for stack in X_stacks:
+                   if stack not in self.goals:
+                       moves = sorted(state.actions(), key=self.eval_move)
+                       return moves[0]
 
             # if we have > 3 stacks, move all to its closest goal if not already there
             if len(X_stacks) > 3:
                 for stack in X_stacks:
                     if stack not in self.goals:
-                        moves = sorted(state.actions(boom=False), key=self.eval_move)
+                        moves = sorted(state.actions(), key=self.eval_move)
                         return moves[0]
             
             # if we have 3 stacks and goals are filled, self.arranged=True
@@ -157,7 +157,7 @@ class NvTwo():
             # with the hacky one, everything is on a goal but theyre not filled
             if not self.arranged:
                 self.almost = True
-                moves = sorted(state.actions(boom=False), key=self.eval_almost_move)
+                moves = sorted(state.actions(), key=self.eval_almost_move)
                 return moves[0]
 
         # check if any of our stacks are adj to opponent, boom if so
@@ -176,7 +176,19 @@ class NvTwo():
                 return move
 
     def eval_move(self, move):
-        _, n, orig, dest = move
+        if move[0] == 'MOVE':
+            move_type, n, orig, dest = move
+        else:
+            move_type, orig = move
+        # first see if move lets opponent get a good boom - only advantageous booms are generated
+        result = self.state.result(move)
+        if result.actions() and result.actions()[0][0] == 'BOOM':
+            return 100000
+        
+        # this boom will only evaluate here if it didn't leave the opponent with a good boom
+        if move_type == 'BOOM':
+            return -100
+
         if orig in self.goals:
             return 10000
         if dest in self.goals:
@@ -192,7 +204,20 @@ class NvTwo():
         return min_dist/n
 
     def eval_almost_move(self, move):
-        _, n, orig, dest = move
+        if move[0] == 'MOVE':
+            move_type, n, orig, dest = move
+        else:
+            move_type, orig = move
+        # first see if move lets opponent get a good boom - only advantageous booms are generated
+        result = self.state.result(move)
+        if result.actions() and result.actions()[0][0] == 'BOOM':
+            return 100000
+        
+        # this boom will only evaluate here if it didn't leave the opponent with a good boom
+        if move_type == 'BOOM':
+            return -100
+
+
         if orig not in self.goals:
             min_dist = 200
             x, y = dest
