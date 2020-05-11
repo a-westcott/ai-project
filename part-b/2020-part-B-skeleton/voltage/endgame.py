@@ -81,9 +81,10 @@ def n_v_one_eval_moves(state, moves, Ox, Oy):
         result = state.result(potential)
         if result.history[result] >= 4:
             return potential
+        i+=1
     
     # accept a loss
-    return potential[0]
+    return moves[0]
 
 
 class NvTwo():
