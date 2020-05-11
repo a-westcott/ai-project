@@ -6,31 +6,34 @@ from collections import defaultdict as dd
 from features import Φ, ALL_STACKS, RINGS, H
 from ab_treestrap_train import alpha_beta_train, ab_weight_updates
 from opening import opening_book
-from weight import weight
+from weight import weight1
 
 from multiprocessing import Pool, Manager
+import gc
 
 MULTI = False
 PROCESSES = 8
 
-AB_TRAIN = False
-TRAIN_DEPTH = 2
+AB_TRAIN = True
+TRAIN_DEPTH = 4
+
 
 num_features = len(Φ(State()))
 
-α = 0.01
+α = 0.000001
 λ = 0.5
-MAX_CHANGE = 0.1
+MAX_CHANGE = 0.01
 def tree_strap_train(θo, θd, θm, θe, depth=TRAIN_DEPTH):
     state = State()
     #memoised_features = {} if MULTI else None
-    #memoised_features = {}
-    random_turns = np.random.choice([0]*0 + [2]*0 + [4]*0 + [8]*0 + [16]*1 + [32]*2)
+
+    memoised_features = {}
+    random_turns = np.random.choice([0]*0 + [2]*0 + [6]*2 + [8]*4 + [16]*4 + [32]*8)
     # See if each player will use book    
     X_use_book = np.random.choice([0, 0, 0, 1])
     O_use_book = np.random.choice([0, 0, 0, 1])
 
-    while (not state.terminal_test()):
+    while (not state.training_terminal_test()):
         print(f'Turn number {state.turn}')
         print(state)
         print()
@@ -57,22 +60,27 @@ def tree_strap_train(θo, θd, θm, θe, depth=TRAIN_DEPTH):
                 V = speedy_minimax(state, depth, θ, searched_states, first=True, memoised_states=memoised_features)[0]
             elif not AB_TRAIN:
                 searched_states = []
-                V = negamax(state, -INF, INF, depth, θ, searched_states)
+                V = negamax(state, -10*INF, 10*INF, depth, θ, memoised_features)
             
             if AB_TRAIN:
                 searched_states = []
-                alpha_beta_train(state, θ, searched_states, TRAIN_DEPTH)
-                ab_weight_updates(searched_states, θ, depth)
+                alpha_beta_train(state, θ, searched_states, TRAIN_DEPTH, memoised_features)
+                ab_weight_updates(searched_states, θ, depth, α, λ, MAX_CHANGE)
             else:
                 Δθ = np.zeros(num_features)
-                for s, vs, hs, features, d in searched_states:
-                    # updates should only happen for states that match the player to play
-                    if not d % 2:
-                        features = np.frombuffer(features)
-                        #𝛿 = V(s) - H(features, θ)
-                        𝛿 = vs - hs
-                        Δθ += α*𝛿*features*λ**(depth-d)
-                    
+                #for s, vs, hs, features, d in searched_states:
+                #    # updates should only happen for states that match the player to play
+                #    if not d % 2:
+                #        features = np.frombuffer(features)
+                #        #𝛿 = V(s) - H(features, θ)
+                #        𝛿 = vs - hs
+                #        Δθ += α*𝛿*features*λ**(depth-d)
+                if V != 0:
+                    features = Φ(state, memoised_features)
+                    h = H(features, θ)
+                    𝛿 = V - h          
+                    Δθ += α*𝛿*features  
+
                 for i in range(num_features):
                     if Δθ[i] > MAX_CHANGE:
                         Δθ[i] = MAX_CHANGE
@@ -80,21 +88,25 @@ def tree_strap_train(θo, θd, θm, θe, depth=TRAIN_DEPTH):
                         Δθ[i] = -MAX_CHANGE
                 θ += Δθ
 
-            actions = []
+            best_action = None
             alpha, beta, v = -4*INF, 4*INF, -4*INF
             for a in state.actions():
                 child = state.result(a)
-                #child.board *= -1
-                nmax = -negamax(child, -beta, -alpha, depth-1, θ)
-                actions.append((nmax, a))
-                v = max(v, nmax)
-                alpha = max(alpha, v)
+                nmax = -negamax(child, -beta, -alpha, depth-1, θ, memoised_features)
+                if nmax > alpha:
+                    alpha = nmax
+                    best_action = a
+
+    
 
             
-            state = state.result(max(actions)[1])
-            print(max(actions)[0])
-
-        #state.board *= -1
+            state = state.result(best_action)
+            print(alpha)
+    
+    print('Terminal State:')
+    print(state)
+    memoised_features = None
+    gc.collect()
     return θo, θd, θm, θe
 
 def minimax(state, depth, θ, searched_states=None):
@@ -151,18 +163,17 @@ def speedy_minimax(state, depth, θ, searched_states=None, first=False, memoised
     return maxEval, searched_states
 
 def negamax(state, alpha, beta, depth, θ, memoised_states=None):
-    if state.stages_terminal_test():
-        return state.utility(stage=True)
+    if state.training_terminal_test():
+        return state.utility(train=True)
     if depth == 0:
         if memoised_states:
             return H(Φ(state, memoised_states), θ)
         return H(Φ(state), θ)
 
-    v = -INF
+    v = -4*INF
     for a in state.actions():
         child = state.result(a)
-        #child.board *= -1
-        v = max(v, -negamax(child, -beta, -alpha, depth-1, θ))
+        v = max(v, -negamax(child, -beta, -alpha, depth-1, θ, memoised_states))
         if v >= beta:
             return v
         alpha = max(alpha, v)        
@@ -171,17 +182,17 @@ def negamax(state, alpha, beta, depth, θ, memoised_states=None):
 N_GAMES = 50000
 def main():
     try:
-        θo = np.load('w_opn.npy')
-        θd = np.load('w_dev.npy')
-        θm = np.load('w_mid.npy')
-        θe = np.load('w_end.npy')
+        θo = np.load('w_opn-ab.npy')
+        θd = np.load('w_dev-ab.npy')
+        θm = np.load('w_mid-ab.npy')
+        θe = np.load('w_end-ab.npy')
         #θo = np.load('o33.npy')
         #θd = np.load('d33.npy')
         #θm = np.load('m33.npy')
         #θe = np.load('e33.npy')
 
     except:
-        θo = np.copy(weight)
+        θo = np.copy(weight1)
         θd = np.copy(θo)
         θm = np.copy(θo)
         θe = np.copy(θo)
@@ -199,8 +210,9 @@ def main():
         np.save('w_mid', θm)
         np.save('w_end', θe)
         
+        gc.collect()
+
         if game_num%10 == 0:
-            Φ(None, reset=True)
 
             fig = plt.figure(figsize=(20, 20))
             plt.subplot(4, 1, 1)
@@ -289,6 +301,7 @@ def main():
             sns.despine()
             plt.savefig('Training.png')
 
+            '''
             f1s = ['largest_connected_cluster', 'mobility', 'pieces', 'stacks', 'actions', 'connectivity', 'threat', 'av_stack_size']
             f2s = ['piece_centrality', 'stack_centrality']
             f3s = ['column_piece_count', 'column_stack_count']
@@ -308,7 +321,9 @@ def main():
             plt.subplot(1, 4, 3); sns.heatmap([[e] for e in θm], cmap=cmap, vmin=-FACTOR, vmax=FACTOR, yticklabels=[], xticklabels=[])
             plt.subplot(1, 4, 4); sns.heatmap([[e] for e in θe], cmap=cmap, vmin=-FACTOR, vmax=FACTOR, yticklabels=[], xticklabels=[])
             plt.savefig('Labelled-Heatmap.png')
-    
+            '''
+            plt.close('all')
+
     print(θo)
     print(θd)
     print(θm)

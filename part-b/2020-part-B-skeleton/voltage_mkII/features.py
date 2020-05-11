@@ -4,6 +4,8 @@ except:
     from voltage_mkII.state import State, MOVE, ALL, INF
 
 import numpy as np
+import gc
+from math import tanh
 
 ALL_STACKS = 0
 
@@ -34,19 +36,15 @@ BUFFER = [(0, 2), (2, 2), (1, 0), (-1, -2), (-2, -1), (-2, -2), (-1, -1), (-2, 1
 def H(features, θ):
     h = np.dot(features, θ)
     if h > 0.99*INF:
-        return 0.99*INF
+        return INF*tanh(h/35)
     if h < -0.99*INF:
-        return -0.99*INF
+        return -INF*tanh(h/35)
     return h
 
 
-def Φ(state, memoized_states={}, reset=False): 
-    if reset:
-        del memoized_states
-        memoized_states={}
-        return
-    
-    if state in memoized_states:
+def Φ(state, memoized_states=None, reset=False): 
+
+    if memoized_states is not None and state in memoized_states:
         return memoized_states[state]
 
     X, O = 1, 0
@@ -340,7 +338,7 @@ def Φ(state, memoized_states={}, reset=False):
     # Board position
     # Closeness to centre
 
-    f1s = [largest_connected_cluster, #largest_almost_connected_cluster_stacks, largest_almost_connected_cluster_pieces, spacing,
+    f1s = [largest_connected_cluster, #choic, largest_almost_connected_cluster_pieces, spacing,
            mobility, pieces, stacks, actions, connectivity, threat, av_stack_size, closest_opposing_pieces, avg_closeness]
     f2s = [piece_centrality, stack_centrality]
     f3s = [column_piece_count, column_stack_count]
@@ -361,7 +359,8 @@ def Φ(state, memoized_states={}, reset=False):
         features.append((1-piece_adv) * features[i])
     
     features = np.array(features)
-    memoized_states[state] = features
+    if memoized_states is not None:
+        memoized_states[state] = features
     return features
 
 

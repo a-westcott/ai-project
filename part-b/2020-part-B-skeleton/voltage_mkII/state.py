@@ -68,6 +68,10 @@ class State():
 
         redundant_booms = set()
 
+        piece_ratio = self.board[self.board > 0].sum()/abs(self.board[self.board < 0].sum())
+
+        
+
         actions = []
         for x, y in ALL:
             if self.board[x][y] > 0:
@@ -75,12 +79,19 @@ class State():
                 if (x,y) not in redundant_booms and boom:
                     # boom and get board difference, add all exploded white to redundant_list
                     new_board = self.result(('BOOM', (x,y))).board
-                    diff = np.copy(self.board) - new_board
+                    if new_board[new_board > 0].sum() == 0:
+                        new_piece_ratio = INF
+                    else:
+                        new_piece_ratio = abs(new_board[new_board< 0].sum())/(new_board[new_board > 0].sum())
+                    diff = np.copy(self.board) + new_board
                     for x1, y1 in ALL:
                         if diff[x1][y1] > 0:
                             redundant_booms.add((x1, y1))
+                    if new_piece_ratio >= piece_ratio:
+                        actions += get_stack_actions(self.board, x, y, boom=True)
+                    else:
+                        actions += get_stack_actions(self.board, x, y, boom=False)
 
-                    actions += get_stack_actions(self.board, x, y, boom=True)
                 else:
                     actions += get_stack_actions(self.board, x, y, boom=False)
 
@@ -147,21 +158,31 @@ class State():
         r.history[r] += 1
         return r
 
-    def utility(self, train_end=False, stage=False):
+    def utility(self, train=False, stage=False):
         """Return the value of this final state."""
-        if train_end:
+        if train:
             num_op = abs(self.board[self.board < 0].sum())
             num_us = self.board[self.board > 0].sum()
             if (num_op <= 2 and num_us > 2) or (num_op == 1 and num_us > 2):
-                return INF*2
-            if (num_op >= 2 and num_us < 2) or (num_op > 2 and num_us == 2):
-                return INF*2
+                return INF
+            if (num_op > 2 and num_us <= 2) or (num_op >= 2 and num_us == 1):
+                return -INF
             if num_op <= 3 and num_us <= 3 and num_op == num_us and num_us != 0:
                 return 0
         
         if (self.turn >= MAX_TURNS*2) or (self.history[self] >= 4):
             # Draw
             return 0
+
+        if (self.turn >= MAX_TURNS*2) or (self.history[self] >= 4):
+            # Draw
+            return 0 #-INF/3
+        if not (self.board > 0).any() and not (self.board < 0).any():
+            return 0 #-INF/3
+        if (self.board > 0).any() and not (self.board < 0).any():
+            return INF*2
+        if (self.board < 0).any() and not (self.board > 0).any():
+            return -INF*2
 
         if stage:
             if self.stage[0] == END:
@@ -174,14 +195,6 @@ class State():
             piece_adv = self.board[self.board > 0].sum() + self.board[self.board < 0].sum()         
             return np.sign(piece_adv)*INF + piece_adv
 
-        if (self.turn >= MAX_TURNS*2) or (self.history[self] >= 4):
-            # Draw
-            return 0 #-INF/3
-        if not (self.board > 0).any() and not (self.board < 0).any():
-            return 0 #-INF/3
-        if (self.board > 0).any():
-            return INF*2
-        return -INF*2
         
         
 
@@ -198,11 +211,11 @@ class State():
     def training_terminal_test(self):
         num_op = abs(self.board[self.board < 0].sum())
         num_us = self.board[self.board > 0].sum()
-        if (num_op <= 2 and num_us > 2) or (num_op == 1 and num_us > 2):
+        if (num_op == 1 and num_us > 2):
             return True
-        if (num_op >= 2 and num_us < 2) or (num_op > 2 and num_us == 2):
+        if (num_op >= 2 and num_us < 2):
             return True
-        if num_op <= 3 and num_us <= 3 and num_op == num_us:
+        if num_op <= 2 and num_us <= 2 and num_op == num_us:
             return True
         return self.terminal_test()
 

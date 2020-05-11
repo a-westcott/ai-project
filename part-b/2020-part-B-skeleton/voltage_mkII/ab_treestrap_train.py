@@ -5,9 +5,6 @@ import numpy as np
 from features import H, Φ,INF, num_features 
 from state import State
 
-α = 0.01
-λ = 0.5
-MAX_CHANGE = 0.1
 
 def alpha_beta_train(state, θ, searched_states, depth, memoised_features=None):
     '''
@@ -32,11 +29,11 @@ def alpha_beta_train(state, θ, searched_states, depth, memoised_features=None):
     return a
 
 def max_value(state, alpha, beta, depth, θ, searched_states, memoised_features=None):
-    if state.stages_terminal_test():
-        return state.utility(stage=True), -state.utility(stage=True)
+    if state.training_terminal_test():
+        return state.utility(train=True), -state.utility(train=True)
     if depth == 0:
         v0 = H(Φ(state, memoised_features), θ)
-        return v0, -INF
+        return v0, -INF*4
 
     v0, v1 = -4*INF, 4*INF
     for a in state.actions():
@@ -60,8 +57,8 @@ def max_value(state, alpha, beta, depth, θ, searched_states, memoised_features=
     return v0, v1
 
 def min_value(state, alpha, beta, depth, θ, searched_states, memoised_features=None):
-    if state.stages_terminal_test():
-        return state.utility(stage=True), -state.utility(stage=True)
+    if state.training_terminal_test():
+        return state.utility(train=True), -state.utility(train=True)
     
     v0, v1 = 4*INF, -4*INF
     # we assume whole alpha beta called with even depth, so this is the last min value call
@@ -88,18 +85,20 @@ def min_value(state, alpha, beta, depth, θ, searched_states, memoised_features=
         searched_states.append((state, v1, EXACT, H(features, θ), features, depth))
     return v0, v1
 
-def ab_weight_updates(searched_states, θ, depth):
+def ab_weight_updates(searched_states, θ, depth, α, λ, MAX_CHANGE):
     Δθ = np.zeros(num_features)
     for state, vs, bound, hs, features, d in searched_states:
         # determine whether we should update
         update = False
+        if vs == 0:
+            continue
         if (bound == EXACT) or (bound == L_BOUND and vs < hs) or (bound == U_BOUND and vs > hs):
             update = True  
         if not update:
             continue
         
         𝛿 = vs - hs
-        Δθ += α*𝛿*features*λ**(depth-d)
+        Δθ += α*𝛿*features*λ#**(depth-d)
         for i in range(num_features):
             if Δθ[i] > MAX_CHANGE:
                 Δθ[i] = MAX_CHANGE

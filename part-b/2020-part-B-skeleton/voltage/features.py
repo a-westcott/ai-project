@@ -1,5 +1,11 @@
-from player import State, MOVE, ALL
+try:
+    from state import State, MOVE, ALL, INF
+except:
+    from voltage.state import State, MOVE, ALL, INF
+
 import numpy as np
+import gc
+from math import tanh
 
 ALL_STACKS = 0
 
@@ -22,9 +28,23 @@ R0 =[(3, 3), (3, 4),
 
 RINGS = [R0, R1, R2, R3]
 
+BUFFER = [(0, 2), (2, 2), (1, 0), (-1, -2), (-2, -1), (-2, -2), (-1, -1), (-2, 1), (-1, 1), 
+          (0, -1), (0, -2), (0, 1), (2, -2), (2, -1), (1, 2), (2, 1), (-2, 0), (-1, 0), 
+          (-2, 2), (0, 0), (1, 1), (2, 0), (1, -2), (1, -1), (-1, 2)]
 
-def Φ(state, memoized_states={}): 
-    if state in memoized_states:
+
+
+def H(features, θ):
+    h = np.dot(features, θ)
+    if h > 0.99*INF:
+        return INF*tanh(h/35)
+    if h < -0.99*INF:
+        return -INF*tanh(h/35)
+    return h
+
+
+def Φ(state, memoized_states=None): 
+    if memoized_states is not None and state in memoized_states:
         return memoized_states[state]
 
     X, O = 1, 0
@@ -32,8 +52,8 @@ def Φ(state, memoized_states={}):
     opp_b = State(-1*board).board
     X_stacks = [(x, y) for x, y in ALL if board[x][y] > 0]
     O_stacks = [(x, y) for x, y in ALL if board[x][y] < 0]
-    X_stacks_by_size = [[(x, y) for x, y in X_stacks if board[x][y] ==  stack_size] for stack_size in range(1, 13)]
-    O_stacks_by_size = [[(x, y) for x, y in O_stacks if board[x][y] == -stack_size] for stack_size in range(1, 13)]
+    #X_stacks_by_size = [[(x, y) for x, y in X_stacks if board[x][y] ==  stack_size] for stack_size in range(1, 13)]
+    #O_stacks_by_size = [[(x, y) for x, y in O_stacks if board[x][y] == -stack_size] for stack_size in range(1, 13)]
 
     def largest_connected_cluster(player):
         '''
@@ -69,72 +89,6 @@ def Φ(state, memoized_states={}):
 
         return largest_connected_cluster/NORM
 
-    def largest_almost_connected_cluster_stacks(player, num_pieces=False):
-        ''' 
-        number of stacks (opt pieces) in an extended cluster
-        (vulnerable to one opposing stack in the right spot)
-        '''
-        NORM = 12
-        player_stacks = X_stacks.copy() if player == X else O_stacks.copy()
-        max_lost = 0
-        adj = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
-
-        check_spots = set()
-        [check_spots.add((x+dx,y+dy)) for x,y in player_stacks for dx,dy in adj if 0 <= x+dx <= 7 and 0 <= y+dy <= 7 and [x+dx,y+dy] not in player_stacks]
-        if num_pieces:
-            starting_pieces = pieces(player)
-        else:
-            starting_stacks = stacks(player)
-        
-        for x,y in check_spots:
-            result = state.result(('BOOM', (x,y)))
-            if num_pieces:
-                lost = starting_pieces - pieces(player, result.board)
-            else:
-                lost = starting_stacks - stacks(player, board=result.board)
-            if lost > max_lost:
-                max_lost = lost
-        return max_lost/NORM
-
-    def largest_almost_connected_cluster_pieces(player, num_pieces=False):
-        ''' 
-        number of pieces in an extended cluster
-        (vulnerable to one opposing stack in the right spot)
-        '''
-        # other function is already normalised correctly
-        NORM = 1
-        return largest_almost_connected_cluster_stacks(player, True)/NORM
-
-
-    def piece_centrality(player, ring):
-        ''' Overall centrality in terms of where pieces are '''
-        NORM = 12
-        # player_stacks is a list of (x, y) of each stack
-        player_stacks = X_stacks if player == X else O_stacks
-        colour = 1 if player == X else -1
-        
-        count = 0
-        for pos in player_stacks:
-            if pos in ring:
-                count += board[pos[0]][pos[1]]
-        return count*colour/NORM
-
-    def stack_centrality(player, ring):
-        ''' Overall centrality in terms of where stacks are (ignores that bigger stacks have more pieces) '''
-        NORM = 12
-        # player_stacks is a list of (x, y) of each stack
-        player_stacks = X_stacks if player == X else O_stacks
-        
-        count = 0
-        for pos in player_stacks:
-            if pos in ring:
-                count += 1
-        return count/NORM
-
-    def spacing(player):
-        NORM = 1
-        pass
-
     def mobility(player):
         ''' How many different squares the player can move onto '''
         NORM = 1
@@ -160,25 +114,6 @@ def Φ(state, memoized_states={}):
             # contribution += num spots that piece can move / num_spaces it could move if free
             contribution += num_spots / (4*stack_size)
         return contribution / len(player_stacks)/NORM
-
-    def control(player):
-        ''' Blowing up all pieces now, how many squares are touched '''
-        NORM = 1
-        player_stacks = X_stacks if player == X else O_stacks
-        
-    def control2(player):
-        ''' Moving and then blowing up, how many squares are touched '''
-        NORM = 1
-        pass
-
-    def best_trade(player):
-        ''' piece advantage of best trade '''
-        NORM = 11
-        pass
-
-    def av_cluster_size(player):
-        NORM = 1
-        pass
 
     def pieces(player, board=board):
         '''
@@ -238,57 +173,66 @@ def Φ(state, memoized_states={}):
                     if board[dx][dy]*colour < 0:
                         s.add((dx, dy))
         return len(s)/NORM
-
-    def column_piece_count(player, column):
-        ''' How many pieces are in the column '''
-        NORM = 24
-        col = []
-        for row in range(8):
-            col.append(board[row][column])
-        col = np.array(col)
-        if player == X:
-            return col[col > 0].sum()/NORM
-        return -col[col < 0].sum()/NORM
-        
-    def column_stack_count(player, column):
-        ''' How many stacks of certain size are in the column '''
-        NORM = 8
-        col = []
-        for row in range(8):
-            col.append(board[row][column])
-        col = np.array(col)
-        
-        if player == X:
-            return (col > 0).sum()/NORM
-        return (col < 0).sum()/NORM
-    
-    def av_stack_size(player):
-        NORM = 12
-        return pieces(player) / stacks(player) / NORM
             
     # Distance to opponent
-    # Measure of closeness or spread
-    # Board position
-    # Closeness to centre
+    def closest_opposing_pieces(player):
+        NORM = 12
+        closest = -16
+        for Xx, Xy in X_stacks:
+            for Ox, Oy in O_stacks:
+                dist = abs(Xx - Ox) + abs(Xy - Oy)
+                if dist < closest:
+                    if dist == 1:
+                        return closest
+                    closest = dist
+        return closest/NORM
 
-    f1s = [largest_connected_cluster, #largest_almost_connected_cluster_stacks, largest_almost_connected_cluster_pieces,
-           mobility, pieces, stacks, actions, connectivity, threat, av_stack_size]
-    f2s = [piece_centrality, stack_centrality]
-    f3s = [column_piece_count, column_stack_count]
+    def avg_closeness(player):
+        NORM = 12
+        running_total = 0
+        our_stacks, opp_stacks = (X_stacks, O_stacks) if player == X else (O_stacks, X_stacks)
+         
+        for x1, y1 in our_stacks:
+            closest = 16
+            for x2, y2 in opp_stacks:
+                dist = abs(x1 - x2) + abs(y1 - y2)
+                if dist < closest:
+                    if dist == 1:
+                        closest = dist
+                        break
+                    closest = dist
+            running_total += closest
 
-    features = [f(player) for f in f1s for player in [X, O]] + \
-               [f(player, ring) for f in f2s for ring in RINGS for player in [X, O]] + \
-               [f(player, col) for f in f3s for col in range(8) for player in [X, O]]
+        return running_total/len(X_stacks)/NORM
+
+    def ratio():
+        return pieces(X) / pieces(O)
+
+    fs = [largest_connected_cluster,
+           mobility, pieces, stacks, actions, connectivity, threat, closest_opposing_pieces, avg_closeness]
+
+    features = [f(player) for f in fs for player in [X, O]]
     diffs = []
     for i in range(0, len(features), 2):
         diffs.append(features[i] - features[i+1])
-    features = np.array(features+diffs)
+    features = [ratio()] + features+diffs
+    
+    piece_adv = (np.sign(pieces(X) - pieces(O)) + 1)//2
 
-    memoized_states[state] = features
+    num_features = len(features)
+    for i in range(num_features):
+        features.append(piece_adv * features[i])
+        features.append((1-piece_adv) * features[i])
+    
+    features = np.array(features)
+    if memoized_states is not None:
+        memoized_states[state] = features
     return features
 
+num_features = len(Φ(State(), {}))
+
 def main():
-    print(Φ())
+    state = State()
 
 if __name__ == '__main__':
     main()

@@ -34,7 +34,7 @@ def n_v_one(state):
             return ('BOOM', stack)
 
     # otherwise move closer
-    moves = sorted(state.actions(boom=False), key = lambda move: ((abs(Ox - move[3][0]))**2 + (abs(Oy - move[3][1]))**2)/move[1])
+    moves = sorted(state.actions(boom=False), key = lambda move: ((Ox - move[3][0]))**2 + ((Oy - move[3][1])**2)/move[1])
 
     return n_v_one_eval_moves(state, moves, Ox, Oy)
         
@@ -97,6 +97,15 @@ class NvTwo():
         # form three spaced stacks along starting column if were not there already, checking 
         # were not about to lose a bunch of pieces
         
+        # Heuristic
+        # Spacing with our pieces
+        # Min distance to opponent pieces
+        # Opponent's boom in next boom
+
+        # If not spread
+            # Maximise spreading ASAP
+
+
         # this current arrangement is clunky and im sure it can be improved
         if not self.arranged:
             if self.column is None:
@@ -106,14 +115,12 @@ class NvTwo():
             
             # fix any immediate threats if we need to
 
-
             # if we have < 3 stacks, move current ones to goals if not already there
-            if len(X_stacks) < 3:
-                for stack in X_stacks:
-                    if stack not in self.goals:
-                        moves = sorted(state.actions(boom=False), key=self.eval_move)
-                        return moves[0]
-                    
+            #if len(X_stacks) < 3:
+            #    for stack in X_stacks:
+            #        if stack not in self.goals:
+            #            moves = sorted(state.actions(boom=False), key=self.eval_move)
+            #            return moves[0]
 
             # if we have > 3 stacks, move all to its closest goal if not already there
             if len(X_stacks) > 3:
@@ -134,17 +141,12 @@ class NvTwo():
                     if stack not in self.goals:
                         self.arranged = False
                         break
-            
 
-            
             # with the hacky one, everything is on a goal but theyre not filled
             if not self.arranged:
                 self.almost = True
                 moves = sorted(state.actions(boom=False), key=self.eval_almost_move)
                 return moves[0]
-
-
-
 
         # check if any of our stacks are adj to opponent, boom if so
         for Ox, Oy in O_stacks:
@@ -156,10 +158,10 @@ class NvTwo():
         # otherwise advance
         for x in range(8):
             if state.board[x][self.column] > 0:
+                move = ('MOVE', state.board[x][self.column], (x, self.column), (x, self.column + self.direction))
                 if x > 5:
                     self.column += self.direction
-                return ('MOVE', state.board[x][self.column], (x, self.column), (x, self.column + self.direction))
-
+                return move
 
     def eval_move(self, move):
         _, n, orig, dest = move
@@ -176,7 +178,6 @@ class NvTwo():
                 min_dist = dist
 
         return min_dist/n
-        
 
     def eval_almost_move(self, move):
         _, n, orig, dest = move
@@ -194,7 +195,6 @@ class NvTwo():
             return 10 + n
 
         return 200
-        
 
 def main():
     state = State()
