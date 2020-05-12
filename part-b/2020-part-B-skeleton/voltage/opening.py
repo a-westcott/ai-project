@@ -5,11 +5,11 @@ try:
     location3 = 'book3.pkl'
     location4 = 'book4.pkl'
 except:
-    from voltage_mkII.state import State, MOVE, BOOM
-    location1 = 'voltage_mkII/book1.pkl'
-    location2 = 'voltage_mkII/book2.pkl'
-    location3 = 'voltage_mkII/book3.pkl'
-    location4 = 'voltage_mkII/book4.pkl'
+    from voltage.state import State, MOVE, BOOM
+    location1 = 'voltage/book1.pkl'
+    location2 = 'voltage/book2.pkl'
+    location3 = 'voltage/book3.pkl'
+    location4 = 'voltage/book4.pkl'
 
 
 import numpy as np

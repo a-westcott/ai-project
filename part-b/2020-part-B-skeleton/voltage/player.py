@@ -40,13 +40,13 @@ class BasePlayer:
         self.state = State()
         self.n_v_two = None
         self.depth = DEPTH
-        self.θo = np.load(path+'w_opn-ab.npy')
+        self.θo = np.load(path+'w_opn-ab5.npy')
 
-        self.θd = np.load(path+'w_dev-ab.npy')
+        self.θd = np.load(path+'w_dev-ab5.npy')
 
-        self.θm = np.load(path+'w_mid-ab.npy')
+        self.θm = np.load(path+'w_mid-ab5.npy')
 
-        self.θe = np.load(path+'w_end-ab.npy')
+        self.θe = np.load(path+'w_end-ab5.npy')
         self.time += datetime.now() - t
 
     def action(self):
@@ -59,6 +59,11 @@ class BasePlayer:
 
             except:
                 pass
+
+
+        if timedelta(seconds=59) < self.time:
+            self.time += datetime.now() - t
+            return self.format_action(self.state.actions()[0])
         
         # n v two endgame
         if self.state.board[self.state.board < 0].sum() == -2 and self.state.board[self.state.board > 0].sum() > 2:
@@ -81,11 +86,11 @@ class BasePlayer:
         else:
             θ = self.θe
 
-        if timedelta(seconds=59.6) < self.time:
+        if timedelta(seconds=58) < self.time:
             self.time += datetime.now() - t
             return self.format_action(self.state.actions()[0])
 
-        if timedelta(seconds=56) < self.time:
+        if timedelta(seconds=55) < self.time:
             self.depth = 1
 
         depth = self.depth

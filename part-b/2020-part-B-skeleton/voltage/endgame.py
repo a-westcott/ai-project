@@ -47,7 +47,6 @@ def n_v_one_eval_moves(state, moves, Ox, Oy):
     '''
     # try avoid repeated states and boom
     i=0
-    cont=False
     while i < len(moves):
         potential = moves[i]
         result = state.result(potential)
@@ -62,14 +61,14 @@ def n_v_one_eval_moves(state, moves, Ox, Oy):
             continue
 
         # check to make sure opponent can't move into a draw
-        for a in result.actions():
-            opp_moved = result.result(a)
+        cont=False
+        for opp_a in result.actions():
+            opp_moved = result.result(opp_a)
             if opp_moved.terminal_test():
                 i += 1
                 cont = True
                 break
         if cont:
-            cont = False
             continue
 
         return potential
@@ -109,15 +108,6 @@ class NvTwo():
         
         # form three spaced stacks along starting column if were not there already, checking 
         # were not about to lose a bunch of pieces
-        
-        # Heuristic
-        # Spacing with our pieces
-        # Min distance to opponent pieces
-        # Opponent's boom in next boom
-
-        # If not spread
-            # Maximise spreading ASAP
-
 
         # this current arrangement is clunky and im sure it can be improved
         if not self.arranged:
@@ -186,6 +176,14 @@ class NvTwo():
         if result.actions() and result.actions()[0][0] == 'BOOM':
             return 100000
         
+        # if move ends game, or if any of opponents move end game, thats bad
+        if result.terminal_test():
+            return 100001
+        for action in result.actions():
+            if result.result(action).terminal_test():
+                return 100001
+        
+        
         # this boom will only evaluate here if it didn't leave the opponent with a good boom
         if move_type == 'BOOM':
             return -100
@@ -218,6 +216,12 @@ class NvTwo():
         if move_type == 'BOOM':
             return -100
 
+        if result.terminal_test():
+            return 100001
+        for action in result.actions():
+            if result.result(action).terminal_test():
+                return 100001
+        
 
         if orig not in self.goals:
             min_dist = 200

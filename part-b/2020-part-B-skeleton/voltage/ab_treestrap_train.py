@@ -98,7 +98,7 @@ def ab_weight_updates(searched_states, θ, depth, α, λ, MAX_CHANGE):
             continue
         
         𝛿 = vs - hs
-        Δθ += α*𝛿*features*λ#**(depth-d)
+        Δθ += α*𝛿*features*λ**(depth-d)
         for i in range(num_features):
             if Δθ[i] > MAX_CHANGE:
                 Δθ[i] = MAX_CHANGE

@@ -61,7 +61,6 @@ class BasePlayer:
             return self.format_action(self.n_v_two.move(self.state))
 
         # n v one endgame
-        #if self.state.board[self.state.board < 0].sum() == -1 and self.state.board[self.state.board > 0].sum() > 1:
         if len(self.state.board[self.state.board < 0]) == 1 and self.state.board[self.state.board > 0].sum() > 1:
             return self.format_action(n_v_one(self.state))
 
