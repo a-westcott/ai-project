@@ -8,6 +8,7 @@ from ab_treestrap_train import alpha_beta_train, ab_weight_updates
 from opening import opening_book
 #from weight import weight1
 
+# note multiprocessing was used for training only, not for play
 from multiprocessing import Pool, Manager
 import gc
 
